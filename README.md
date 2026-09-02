@@ -379,6 +379,57 @@ which is frozen into `work_sessions.summary_json`.
 
 ---
 
+### Running on one shared PC (the normal setup)
+
+The restaurant runs a **single terminal** that two or three people share, each
+taking a five-to-six hour slot. The software is built for that: it is *who is
+signed in*, not which machine, that decides whose numbers a sale lands on.
+
+**Setting the PC up once**
+
+1. The owner registers first — the first account on a fresh install becomes
+   **ADMIN** automatically.
+2. Admin → **Employees → + New employee** creates each member of staff with a
+   starting password. (They can also register themselves, but then they sit as
+   *pending* until the admin approves them, which is a slower path.)
+3. Each employee changes their password on first login.
+
+One Windows login is fine for everyone; the app's own accounts do the
+separating. There is no need for separate Windows user profiles — in fact one
+shared Windows account is better, because the database lives under
+`%APPDATA%` per Windows user and a second profile would start an empty
+restaurant.
+
+**The shift handover**
+
+```
+Employee A → My Session → End session   (prints/records their totals)
+           → user menu  → Sign out
+Employee B → Sign in    → POS → Start session
+```
+
+Behaviour worth knowing, all covered by `tests/sharedTerminal.test.ts`:
+
+- **Signing out does not end a session.** If someone signs out mid-shift — or
+  the PC is restarted — their session is still open when they sign back in,
+  with its running totals intact. Sessions end only when someone explicitly
+  ends them.
+- **Sales attach to the signed-in employee**, never to the terminal. Two
+  people ringing up on the same PC produce two cleanly separated sets of
+  takings.
+- **Shifts may overlap.** Both employees can hold an open session at the same
+  time; the admin dashboard shows every session currently on the floor.
+- **Staff cannot see each other's takings.** An employee reading another
+  employee's session is refused; only the admin can view any session.
+- **A forgotten session can be closed by the admin** — useful when someone
+  goes home without ending their shift. Closing is refused while that session
+  still has held orders, so nothing is silently stranded.
+
+**One gap to be aware of.** There is no inactivity lock. If someone walks away
+still signed in, the next person can ring up sales under their name until
+somebody signs out. On a shared till, make "sign out at the end of your shift"
+part of the routine — or ask for an auto-lock to be added.
+
 ## 8. Printer setup
 
 **Settings → Printer.**
