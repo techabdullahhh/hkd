@@ -1,0 +1,58 @@
+appId: com.hashmikadera.pos
+productName: Hashmi Ka Dera POS
+copyright: Copyright © 2026 Hashmi Ka Dera
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+
+# Bundled menu photography. Copied beside the app (not into the asar) and
+# loaded into the database on first run by services/images.ts.
+extraResources:
+  - from: resources/menu-images
+    to: menu-images
+    filter:
+      - "**/*"
+  - from: resources/brand
+    to: brand
+    filter:
+      - "**/*"
+
+# better-sqlite3 is a native module — keep it out of the asar and let
+# electron-builder rebuild it for the target Electron ABI.
+npmRebuild: true
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-Setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Hashmi Ka Dera POS
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.business
+
+linux:
+  target:
+    - AppImage
+  category: Office
+
+publish: null

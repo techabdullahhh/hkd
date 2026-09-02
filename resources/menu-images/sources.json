@@ -1,0 +1,263 @@
+{
+  "_readme": [
+    "Curated sources for the menu photography that ships with the app.",
+    "Every photograph is a freely-licensed Wikimedia Commons file (CC0, public",
+    "domain, CC BY or CC BY-SA) chosen by eye to match the dish it is used for.",
+    "`name` must match the seed menu item exactly (src/shared/menu-data.ts) —",
+    "that is how images are attached at seed time.",
+    "Run `node scripts/build-menu-images.mjs --force` after editing; it fills in",
+    "artist/license/page and writes manifest.json plus the 500x375 .webp files."
+  ],
+  "products": [
+    {
+      "slug": "seekh-kabab",
+      "name": "Seekh Kabab",
+      "file": "File:Mutton Seekh (9454117913).jpg",
+      "artist": "saurabh sharan",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Mutton_Seekh_(9454117913).jpg"
+    },
+    {
+      "slug": "malai-boti",
+      "name": "Malai Boti",
+      "file": "File:Chicken Tikka, Delhi style (14023948639).jpg",
+      "artist": "Ramesh NG from Bangalore, INDIA",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chicken_Tikka,_Delhi_style_(14023948639).jpg"
+    },
+    {
+      "slug": "chicken-boti",
+      "name": "Chicken Boti",
+      "file": "File:Chicken Tikka Kebab.jpg",
+      "artist": "Sumit Surai",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chicken_Tikka_Kebab.jpg"
+    },
+    {
+      "slug": "chest-piece",
+      "name": "Chest Piece",
+      "file": "File:Chicken Tandoor Mix Platter.jpg",
+      "artist": "Contentshare",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chicken_Tandoor_Mix_Platter.jpg"
+    },
+    {
+      "slug": "leg-piece",
+      "name": "Leg Piece",
+      "file": "File:A piece of a tandoori chicken.JPG",
+      "artist": "Bihans91",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:A_piece_of_a_tandoori_chicken.JPG"
+    },
+    {
+      "slug": "chicken-karahi",
+      "name": "Chicken Karahi",
+      "file": "File:Pakistani Food Karahi Beef.jpg",
+      "artist": "Jess Lander from Culver City, CA, USA",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Pakistani_Food_Karahi_Beef.jpg"
+    },
+    {
+      "slug": "white-karahi",
+      "name": "White Karahi",
+      "file": "File:Chicken Dry Curry - Howrah 2015-04-26 8515.JPG",
+      "artist": "Biswarup Ganguly",
+      "license": "CC BY 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chicken_Dry_Curry_-_Howrah_2015-04-26_8515.JPG"
+    },
+    {
+      "slug": "makhni-karahi",
+      "name": "Makhni Karahi",
+      "file": "File:Butter Chicken & Butter Naan - Home - Chandigarh - India - 0006.jpg",
+      "artist": "Yuvraj Singh 97",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Butter_Chicken_%26_Butter_Naan_-_Home_-_Chandigarh_-_India_-_0006.jpg"
+    },
+    {
+      "slug": "chicken-qorma",
+      "name": "Chicken Qorma",
+      "file": "File:Chicken tikka masala (cropped).jpg",
+      "artist": "Michael Hays",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chicken_tikka_masala_(cropped).jpg"
+    },
+    {
+      "slug": "daal-mash",
+      "name": "Daal Mash",
+      "file": "File:Dal tadka and naan.jpg",
+      "artist": "Wind Hashira",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Dal_tadka_and_naan.jpg"
+    },
+    {
+      "slug": "daal-chana",
+      "name": "Daal Chana",
+      "file": "File:Dal Tadka 01 (36779549481).jpg",
+      "artist": "Bharat Mirchandani from Mumbai, India",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Dal_Tadka_01_(36779549481).jpg"
+    },
+    {
+      "slug": "lal-lobia",
+      "name": "Lal Lobia",
+      "file": "File:Rajma Masala (32081557778).jpg",
+      "artist": "Gaurav Nemade",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Rajma_Masala_(32081557778).jpg"
+    },
+    {
+      "slug": "kadhi-pakora",
+      "name": "Kadhi Pakora",
+      "file": "File:Kadhi Pakora.jpg",
+      "artist": "Ams4wiki",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Kadhi_Pakora.jpg"
+    },
+    {
+      "slug": "mix-sabzi",
+      "name": "Mix Sabzi",
+      "file": "File:A thali with daal roti bhindi ki sabzi and mango pickle.jpg",
+      "artist": "Devika",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:A_thali_with_daal_roti_bhindi_ki_sabzi_and_mango_pickle.jpg"
+    },
+    {
+      "slug": "shahi-chana",
+      "name": "Shahi Chana",
+      "file": "File:Chana masala.jpg",
+      "artist": "Simon Law (sfllaw) from Montréal , QC , Canada",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chana_masala.jpg"
+    },
+    {
+      "slug": "chana-chawal",
+      "name": "Chana Chawal",
+      "file": "File:Dal Fry Tadka, Cumin Rice, Roasted Papad on the side.jpg",
+      "artist": "Monali.mishra",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Dal_Fry_Tadka,_Cumin_Rice,_Roasted_Papad_on_the_side.jpg"
+    },
+    {
+      "slug": "sada-paratha",
+      "name": "Sada Paratha",
+      "file": "File:A man who is cooking parathas.JPG",
+      "artist": "Paul Munhoven",
+      "license": "CC BY-SA 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:A_man_who_is_cooking_parathas.JPG"
+    },
+    {
+      "slug": "chicken-paratha",
+      "name": "Chicken Paratha",
+      "file": "File:Kathiroll.jpg",
+      "artist": "kspoddar",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Kathiroll.jpg"
+    },
+    {
+      "slug": "aloo-paratha",
+      "name": "Aloo Paratha",
+      "file": "File:Cooking paratha in ghee at a shop in parathe wali gali, Delhi, India.jpg",
+      "artist": "Ravi Dwivedi",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Cooking_paratha_in_ghee_at_a_shop_in_parathe_wali_gali,_Delhi,_India.jpg"
+    },
+    {
+      "slug": "naan",
+      "name": "Naan",
+      "file": "File:Annapurna Naan.jpg",
+      "artist": "snowpea&bokchoi",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Annapurna_Naan.jpg"
+    },
+    {
+      "slug": "pateeri",
+      "name": "Pateeri",
+      "file": "File:Bread of Afghanistan in 2010.jpg",
+      "artist": "Christine A. Darius (U.S. armed forces)",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Bread_of_Afghanistan_in_2010.jpg"
+    },
+    {
+      "slug": "chapati",
+      "name": "Chapati",
+      "file": "File:2 Chapati warm and ready to be eaten.jpg",
+      "artist": "KittyKaht from Hong Kong, Hong Kong",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:2_Chapati_warm_and_ready_to_be_eaten.jpg"
+    },
+    {
+      "slug": "raita-salad",
+      "name": "Raita / Salad",
+      "file": "File:Cucumber-raita.jpg",
+      "artist": "Sonia Goyal",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Cucumber-raita.jpg"
+    },
+    {
+      "slug": "fries",
+      "name": "Finger Chips / Fries",
+      "file": "File:20220602 puntzak friet schaftlokaal ulft.jpg",
+      "artist": "Ziko van Dijk",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:20220602_puntzak_friet_schaftlokaal_ulft.jpg"
+    },
+    {
+      "slug": "chai",
+      "name": "Chai",
+      "file": "File:Doodh Patti Chai.JPG",
+      "artist": "Miansari66",
+      "license": "CC0",
+      "page": "https://commons.wikimedia.org/wiki/File:Doodh_Patti_Chai.JPG"
+    },
+    {
+      "slug": "special-chai",
+      "name": "Special Chai",
+      "file": "File:Teamaking.JPG",
+      "artist": "photographed by self (Pratheepps)",
+      "license": "CC BY-SA 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Teamaking.JPG"
+    },
+    {
+      "slug": "special-kehwa",
+      "name": "Special Kehwa",
+      "file": "File:Tulsi Tea.JPG",
+      "artist": "Miansari66",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Tulsi_Tea.JPG"
+    }
+  ],
+  "deals": [
+    {
+      "slug": "deal-1",
+      "name": "Deal 1",
+      "file": "File:Chicken Tikka.jpg",
+      "artist": "Umair Mohsin from Karachi, Pakistan",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chicken_Tikka.jpg"
+    },
+    {
+      "slug": "deal-2",
+      "name": "Deal 2",
+      "file": "File:Vegetarian Curry.jpeg",
+      "artist": "GracinhaMarco Abundo",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Vegetarian_Curry.jpeg"
+    },
+    {
+      "slug": "deal-3",
+      "name": "Deal 3",
+      "file": "File:'0' A thali, meal served in India.jpg",
+      "artist": "J",
+      "license": "CC BY-SA 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:%270%27_A_thali,_meal_served_in_India.jpg"
+    },
+    {
+      "slug": "deal-hkd-special",
+      "name": "HKD Special Deal",
+      "file": "File:Tradtional Thali.jpg",
+      "artist": "VinPrasad",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Tradtional_Thali.jpg"
+    }
+  ]
+}

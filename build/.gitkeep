@@ -1,0 +1,3 @@
+# electron-builder buildResources directory.
+# Place icon.ico (Windows), icon.icns (macOS) and icon.png (Linux) here for
+# branded installers. Builds succeed without them (default Electron icon).

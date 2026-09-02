@@ -1,0 +1,12 @@
+node_modules/
+out/
+release/
+dist/
+out-types/
+.hkd-data/
+*.log
+.DS_Store
+.vscode/
+*.local
+coverage/
+smoke-shots/

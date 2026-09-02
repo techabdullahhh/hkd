@@ -1,0 +1,101 @@
+/*
+ * Hashmi Ka Dera (HKD) — design tokens.
+ *
+ * Direction: warm, premium, operational. A deep roasted-charcoal ground
+ * with parchment ink and a saffron accent — evocative of a Pakistani
+ * kitchen, not a generic dark dashboard. High density, real typography,
+ * hairline dividers instead of floating cards.
+ */
+:root {
+  --bg-0: #14100c;
+  --bg-1: #1b1611;
+  --bg-2: #221c15;
+  --bg-3: #2b241b;
+  --bg-4: #362d22;
+  --surface-raised: #201a14;
+  --overlay: rgba(10, 7, 4, 0.66);
+
+  --ink-0: #f6efe2;
+  --ink-1: #e4d9c4;
+  --ink-2: #b3a48a;
+  --ink-3: #8a7c64;
+  --ink-4: #6a5e4a;
+
+  --line-1: #332a20;
+  --line-2: #43382b;
+  --line-strong: #574733;
+
+  --accent: #e8a33d;
+  --accent-strong: #f2b457;
+  --accent-dim: #b97f2c;
+  --accent-ink: #1a1206;
+  --accent-wash: rgba(232, 163, 61, 0.12);
+  --accent-wash-strong: rgba(232, 163, 61, 0.2);
+
+  --chili: #c65a3a;
+  --chili-wash: rgba(198, 90, 58, 0.14);
+
+  --ok: #6fae5f;
+  --ok-wash: rgba(111, 174, 95, 0.14);
+  --warn: #d9a441;
+  --warn-wash: rgba(217, 164, 65, 0.14);
+  --danger: #d9603f;
+  --danger-wash: rgba(217, 96, 63, 0.16);
+  --info: #6ea0c4;
+  --info-wash: rgba(110, 160, 196, 0.14);
+  --herb: #7bb98f;
+
+  --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Consolas", "Menlo", monospace;
+  --font-urdu: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Urdu Typesetting", "Awami Nastaliq", serif;
+
+  --text-2xs: 10.5px;
+  --text-xs: 11.5px;
+  --text-sm: 12.5px;
+  --text-md: 13.5px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --text-2xl: 23px;
+  --text-3xl: 30px;
+  --text-4xl: 40px;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 22px;
+  --s-6: 30px;
+  --s-7: 42px;
+
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /*
+   * Control sizing scale. Restaurant staff use this all shift, often quickly
+   * and sometimes on a touch screen, so comfort beats compactness:
+   *   xl  primary transaction actions (Charge, Payment, keypad)
+   *   lg  frequently used actions and all form inputs
+   *   md  standard buttons
+   *   sm  the SMALLEST allowed control — still a comfortable target
+   * Nothing in the app may be smaller than --control-sm.
+   */
+  --control-xl: 50px;
+  --control-lg: 44px;
+  --control-md: 40px;
+  --control-sm: 34px;
+  /* icon glyph sizes */
+  --icon-md: 17px;
+  --icon-lg: 20px;
+  /* minimum gap between two independently clickable controls */
+  --control-gap: 10px;
+
+  --shadow-pop: 0 18px 48px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-2);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 12px 30px -18px rgba(0, 0, 0, 0.5);
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 3px var(--accent);
+
+  --nav-w: 234px;
+  --topbar-h: 60px;
+}

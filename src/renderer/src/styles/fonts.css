@@ -1,0 +1,24 @@
+/*
+ * Bundled fonts — no network needed at runtime (works offline / behind the
+ * restaurant's firewall). Files live in src/assets/fonts and are fingerprinted
+ * into the build by Vite.
+ *
+ *  - Fraunces           display serif for the English wordmark & headings
+ *  - Noto Nastaliq Urdu authentic Nastaliq for the Urdu wordmark (RTL)
+ */
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../assets/fonts/fraunces-var.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Noto Nastaliq Urdu';
+  src: url('../assets/fonts/noto-nastaliq-urdu.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+  font-style: normal;
+}

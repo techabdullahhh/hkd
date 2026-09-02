@@ -1,0 +1,130 @@
+{
+  "products": {
+    "Seekh Kabab": {
+      "file": "seekh-kabab.webp",
+      "credit": "saurabh sharan · CC BY-SA 2.0"
+    },
+    "Malai Boti": {
+      "file": "malai-boti.webp",
+      "credit": "Ramesh NG from Bangalore, INDIA · CC BY-SA 2.0"
+    },
+    "Chicken Boti": {
+      "file": "chicken-boti.webp",
+      "credit": "Sumit Surai · CC BY-SA 4.0"
+    },
+    "Chest Piece": {
+      "file": "chest-piece.webp",
+      "credit": "Contentshare · CC BY-SA 4.0"
+    },
+    "Leg Piece": {
+      "file": "leg-piece.webp",
+      "credit": "Bihans91 · CC BY-SA 4.0"
+    },
+    "Chicken Karahi": {
+      "file": "chicken-karahi.webp",
+      "credit": "Jess Lander from Culver City, CA, USA · CC BY 2.0"
+    },
+    "White Karahi": {
+      "file": "white-karahi.webp",
+      "credit": "Biswarup Ganguly · CC BY 3.0"
+    },
+    "Makhni Karahi": {
+      "file": "makhni-karahi.webp",
+      "credit": "Yuvraj Singh 97 · CC BY-SA 4.0"
+    },
+    "Chicken Qorma": {
+      "file": "chicken-qorma.webp",
+      "credit": "Michael Hays · CC BY 2.0"
+    },
+    "Daal Mash": {
+      "file": "daal-mash.webp",
+      "credit": "Wind Hashira · CC BY-SA 4.0"
+    },
+    "Daal Chana": {
+      "file": "daal-chana.webp",
+      "credit": "Bharat Mirchandani from Mumbai, India · CC BY-SA 2.0"
+    },
+    "Lal Lobia": {
+      "file": "lal-lobia.webp",
+      "credit": "Gaurav Nemade · CC BY-SA 2.0"
+    },
+    "Kadhi Pakora": {
+      "file": "kadhi-pakora.webp",
+      "credit": "Ams4wiki · CC BY-SA 4.0"
+    },
+    "Mix Sabzi": {
+      "file": "mix-sabzi.webp",
+      "credit": "Devika · CC BY-SA 2.0"
+    },
+    "Shahi Chana": {
+      "file": "shahi-chana.webp",
+      "credit": "Simon Law (sfllaw) from Montréal , QC , Canada · CC BY-SA 2.0"
+    },
+    "Chana Chawal": {
+      "file": "chana-chawal.webp",
+      "credit": "Monali.mishra · CC BY-SA 4.0"
+    },
+    "Sada Paratha": {
+      "file": "sada-paratha.webp",
+      "credit": "Paul Munhoven · CC BY-SA 3.0"
+    },
+    "Chicken Paratha": {
+      "file": "chicken-paratha.webp",
+      "credit": "kspoddar · CC BY-SA 2.0"
+    },
+    "Aloo Paratha": {
+      "file": "aloo-paratha.webp",
+      "credit": "Ravi Dwivedi · CC BY-SA 4.0"
+    },
+    "Naan": {
+      "file": "naan.webp",
+      "credit": "snowpea&bokchoi · CC BY 2.0"
+    },
+    "Pateeri": {
+      "file": "pateeri.webp",
+      "credit": "Christine A. Darius (U.S. armed forces) · CC BY 2.0"
+    },
+    "Chapati": {
+      "file": "chapati.webp",
+      "credit": "KittyKaht from Hong Kong, Hong Kong · CC BY-SA 2.0"
+    },
+    "Raita / Salad": {
+      "file": "raita-salad.webp",
+      "credit": "Sonia Goyal · CC BY-SA 2.0"
+    },
+    "Finger Chips / Fries": {
+      "file": "fries.webp",
+      "credit": "Ziko van Dijk · CC BY-SA 4.0"
+    },
+    "Chai": {
+      "file": "chai.webp",
+      "credit": "Miansari66 · CC0"
+    },
+    "Special Chai": {
+      "file": "special-chai.webp",
+      "credit": "photographed by self (Pratheepps) · CC BY-SA 3.0"
+    },
+    "Special Kehwa": {
+      "file": "special-kehwa.webp",
+      "credit": "Miansari66 · Public domain"
+    }
+  },
+  "deals": {
+    "Deal 1": {
+      "file": "deal-1.webp",
+      "credit": "Umair Mohsin from Karachi, Pakistan · CC BY 2.0"
+    },
+    "Deal 2": {
+      "file": "deal-2.webp",
+      "credit": "GracinhaMarco Abundo · CC BY 2.0"
+    },
+    "Deal 3": {
+      "file": "deal-3.webp",
+      "credit": "J · CC BY-SA 2.0"
+    },
+    "HKD Special Deal": {
+      "file": "deal-hkd-special.webp",
+      "credit": "VinPrasad · CC BY-SA 4.0"
+    }
+  }
+}

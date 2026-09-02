@@ -1,0 +1,455 @@
+@import "./fonts.css";
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg-0);
+  color: var(--ink-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+::selection {
+  background: var(--accent-wash-strong);
+}
+
+h1, h2, h3, h4 {
+  font-weight: 600;
+  color: var(--ink-0);
+  line-height: 1.2;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-xs);
+}
+
+.urdu {
+  font-family: var(--font-urdu);
+  direction: rtl;
+  unicode-bidi: isolate;
+  line-height: 2.1; /* Nastaliq stacks diagonally — needs vertical room */
+  font-feature-settings: "calt" 1, "liga" 1;
+}
+
+/* scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 6px;
+  border: 2px solid var(--bg-0);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--line-strong);
+}
+
+/* ---------- primitives ---------- */
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+.muted {
+  color: var(--ink-3);
+}
+.dim {
+  color: var(--ink-2);
+}
+.eyebrow {
+  font-size: var(--text-2xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+/* ---------------------------- buttons ------------------------------ *
+ * Every button is at least --control-sm (34px) tall. Hover, pressed and
+ * focus states are all distinct so it is obvious what is clickable and
+ * what just got clicked.
+ * ------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  height: var(--control-md);
+  min-width: var(--control-md);
+  padding: 0 var(--s-4);
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--ink-1);
+  border: 1px solid var(--line-2);
+  font-size: var(--text-md);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease,
+    box-shadow 0.12s ease, transform 0.06s ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--bg-4);
+  border-color: var(--line-strong);
+  color: var(--ink-0);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+  background: var(--bg-2);
+  border-color: var(--accent-dim);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent-dim);
+  font-weight: 700;
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.btn--primary:active:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+/* ghost keeps a visible outline on hover so it never reads as plain text */
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-2);
+}
+.btn--ghost:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--line-strong);
+  color: var(--ink-0);
+}
+.btn--danger {
+  background: var(--danger-wash);
+  color: var(--danger);
+  border-color: var(--danger-wash);
+}
+.btn--danger:hover:not(:disabled) {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn--danger:active:not(:disabled) {
+  background: #b34b30;
+  border-color: #b34b30;
+  color: #fff;
+}
+/* the smallest control the app is allowed to use */
+.btn--sm {
+  height: var(--control-sm);
+  min-width: var(--control-sm);
+  padding: 0 var(--s-3);
+  font-size: var(--text-sm);
+}
+.btn--lg {
+  height: var(--control-lg);
+  padding: 0 var(--s-5);
+  font-size: var(--text-lg);
+}
+.btn--xl {
+  height: var(--control-xl);
+  padding: 0 var(--s-6);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+}
+.btn--block {
+  width: 100%;
+}
+/* square icon-only button — the glyph is big and the box is a full target */
+.btn--icon {
+  width: var(--control-md);
+  min-width: var(--control-md);
+  height: var(--control-md);
+  padding: 0;
+  font-size: var(--icon-md);
+  line-height: 1;
+}
+.btn--icon.btn--sm {
+  width: var(--control-sm);
+  min-width: var(--control-sm);
+  height: var(--control-sm);
+}
+.btn--icon.btn--lg {
+  width: var(--control-lg);
+  min-width: var(--control-lg);
+  height: var(--control-lg);
+  font-size: var(--icon-lg);
+}
+/* keep independent actions far enough apart to avoid mis-taps */
+.btn + .btn { margin-left: 0; }
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: var(--control-gap);
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field > label {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.input,
+.select,
+.textarea {
+  height: var(--control-lg);
+  padding: 0 var(--s-3);
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  color: var(--ink-0);
+  font-size: var(--text-md);
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  width: 100%;
+}
+.textarea {
+  height: auto;
+  padding: var(--s-2) var(--s-3);
+  resize: vertical;
+  min-height: 76px;
+}
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--accent);
+  background: var(--bg-0);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.input::placeholder {
+  color: var(--ink-4);
+}
+.select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23b3a48a' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+}
+
+/* --------------------- checkbox / toggle ---------------------------- *
+ * Native checkboxes render ~13px — far too small. These are 22px with
+ * the whole label acting as the click target.
+ * ------------------------------------------------------------------- */
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--control-md);
+  padding: 4px var(--s-2) 4px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-md);
+  color: var(--ink-1);
+  transition: background 0.12s ease;
+  user-select: none;
+}
+.check:hover { background: var(--bg-2); }
+.check input[type="checkbox"] {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 2px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+  background: var(--bg-1);
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.check input[type="checkbox"]::after {
+  content: "";
+  width: 11px;
+  height: 6px;
+  border-left: 2.5px solid var(--accent-ink);
+  border-bottom: 2.5px solid var(--accent-ink);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.check input[type="checkbox"]:hover { border-color: var(--accent-dim); }
+.check input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check input[type="checkbox"]:checked::after { opacity: 1; }
+.check input[type="checkbox"]:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: var(--text-2xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--bg-3);
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+}
+.chip--ok { background: var(--ok-wash); color: var(--ok); border-color: transparent; }
+.chip--warn { background: var(--warn-wash); color: var(--warn); border-color: transparent; }
+.chip--danger { background: var(--danger-wash); color: var(--danger); border-color: transparent; }
+.chip--info { background: var(--info-wash); color: var(--info); border-color: transparent; }
+.chip--accent { background: var(--accent-wash-strong); color: var(--accent-strong); border-color: transparent; }
+
+.panel {
+  background: var(--bg-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-md);
+  /* a wide table inside must not blow the grid track out of the viewport —
+     it scrolls horizontally inside .list-scroll instead */
+  min-width: 0;
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--line-1);
+}
+.panel__head h3 {
+  font-size: var(--text-md);
+  letter-spacing: 0.01em;
+}
+.panel__body {
+  padding: var(--s-4);
+}
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+table.grid th {
+  text-align: left;
+  font-size: var(--text-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 650;
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--line-2);
+  position: sticky;
+  top: 0;
+  background: var(--bg-1);
+  z-index: 1;
+}
+table.grid td {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--line-1);
+  color: var(--ink-1);
+  vertical-align: middle;
+}
+table.grid tbody tr {
+  transition: background 0.08s ease;
+}
+table.grid tbody tr:hover {
+  background: var(--bg-2);
+}
+table.grid tbody tr.clickable {
+  cursor: pointer;
+}
+td.num, th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+.money-pos { color: var(--herb); }
+.money-neg { color: var(--danger); }
+
+.stack { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; }
+.gap-1 { gap: var(--s-1); }
+.gap-2 { gap: var(--s-2); }
+.gap-3 { gap: var(--s-3); }
+.gap-4 { gap: var(--s-4); }
+.between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; }
+.center { align-items: center; justify-content: center; }
+
+.spinner {
+  width: 15px; height: 15px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: translateY(6px) scale(0.99); } to { opacity: 1; transform: none; } }
