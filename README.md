@@ -125,11 +125,97 @@ npm run build:win    # build + produce the Windows installer in release/
 npm run build:dir    # unpacked build for quick local inspection
 ```
 
-`build:win` produces `release/Hashmi Ka Dera POS-1.0.0-Setup.exe`. Hand that
-single file to the restaurant owner — they do not need Node or the source.
+`build:win` produces `release/Hashmi Ka Dera POS-1.0.0-Setup.exe` (~89 MB).
+Icons are generated from the logo and live in `build/` — `icon.ico`
+(multi-size, 16→256 px), `icon.icns` (built with macOS `iconutil`, not
+ImageMagick, which writes a PNG under an `.icns` name) and `icon.png`.
+electron-builder picks them up automatically.
 
-Place `build/icon.ico` (and `.icns`, `.png`) for branded installers; builds work
-without them.
+**Cross-building works.** The Windows installer builds fine from macOS or
+Linux — no Windows machine needed. `better-sqlite3` is a native module, but it
+publishes prebuilt binaries for the Electron ABI (we need
+`electron-v130-win32-x64`), so electron-builder downloads that instead of
+compiling. Worth verifying after a toolchain change, because packaging the
+host platform's binary by mistake produces an installer that fails only on the
+user's PC:
+
+```bash
+file release/win-unpacked/resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+# → PE32+ executable (DLL) (GUI) x86-64, for MS Windows
+```
+
+---
+
+## 5a. Giving the app to someone else
+
+The app is a normal desktop program. The person receiving it needs **no Node,
+no source, no internet** — just Windows 10 or 11 (64-bit).
+
+### What to send
+
+One file: **`Hashmi Ka Dera POS-1.0.0-Setup.exe`** from `release/`.
+
+It is ~89 MB, so email will usually reject it — use WhatsApp Desktop, Google
+Drive, a USB stick, or attach it to a GitHub Release. Do **not** send the
+`win-unpacked` folder or the source code; the installer contains everything,
+including Electron itself.
+
+### Installing it
+
+1. Double-click the `.exe`.
+2. Windows will show **"Windows protected your PC"** — click **More info** →
+   **Run anyway**. This is expected: the installer is not code-signed. A
+   signing certificate costs a few hundred dollars a year; without one every
+   Windows machine shows this warning the first time.
+3. The wizard installs per-user (no administrator password needed) and creates
+   a **Hashmi Ka Dera POS** desktop and Start-menu shortcut.
+
+### First run — creating the first account
+
+A packaged build ships with **no user accounts**. The development logins in
+§6 exist only when running from source.
+
+So on a fresh install: click **Create one** on the sign-in screen and register.
+**The first account created becomes the ADMIN automatically.** Everyone who
+signs up after that is created as a *pending employee* and cannot log in until
+the admin approves them in **Employees**.
+
+The menu, deals, food photography, invoice logo, payment methods and settings
+are all seeded on first launch, so the POS is usable immediately.
+
+### Important: each PC keeps its own data
+
+This is an offline application. There is no server and no sync. Every install
+has its own database, at:
+
+```
+%APPDATA%\Hashmi Ka Dera POS\data\taste-of-hkd.db
+```
+
+Sales, sessions, invoices and menu edits made on one PC do **not** appear on
+another. Two PCs means two separate restaurants as far as the software is
+concerned.
+
+To copy a menu (or everything) to a second machine:
+
+1. On the first PC: **Settings → Backup → Create backup**.
+2. Copy the resulting `.db` file across.
+3. On the second PC: **Settings → Backup → Restore**, choose the file, and type
+   `RESTORE` to confirm. This *replaces* that machine's data — a safety copy of
+   what was there is taken first.
+
+### Printer on the new PC
+
+Pair or install the thermal printer in **Windows Settings → Bluetooth &
+devices → Printers** first, then open **Printer** in the app and select it.
+See §8 for the full printer guide.
+
+### Updating later
+
+Build a new installer and run it over the existing installation. The database
+lives outside the install folder, so **invoices, sessions and menu edits are
+kept**. Bump `version` in `package.json` first so the file name reflects the
+new version.
 
 ### Branding & fonts
 
