@@ -3,7 +3,7 @@ import type { Invoice } from '@shared/types'
 import { api } from '../lib/api'
 import { useAsync, run } from '../lib/useAsync'
 import { Loading, EmptyState, Money, Modal } from '../components/ui'
-import { useAsync as useAsyncHook } from '../lib/useAsync'
+import { ReceiptPreview } from '../components/ReceiptPreview'
 import { formatDateTime, formatMoney } from '../lib/format'
 
 export function InvoicesPage({ scope }: { scope: 'mine' | 'all' }): JSX.Element {
@@ -153,7 +153,6 @@ function InvoiceModal({
   onChanged: (i: Invoice) => void
 }): JSX.Element {
   const [busy, setBusy] = useState(false)
-  const logo = useAsyncHook(() => api.printer.logo(), [])
   const s = invoice.snapshot
 
   const doPrint = async (reprint: boolean): Promise<void> => {
@@ -230,15 +229,7 @@ function InvoiceModal({
         <span className="muted mono">{s.paperWidth}mm</span>
       </div>
       {invoice.lastPrintError && <div className="auth__error" style={{ marginBottom: 'var(--s-2)' }}>{invoice.lastPrintError}</div>}
-      <div className="inv-preview">
-        {/* The logo is resolved at print time from current settings, not
-            frozen into the snapshot — so a reprint always carries today's
-            logo, and this preview shows the same thing the paper will. */}
-        {logo.data?.enabled && logo.data.previewDataUrl && (
-          <img className="inv-preview__logo" src={logo.data.previewDataUrl} alt="" />
-        )}
-        {text.join('\n')}
-      </div>
+      <ReceiptPreview text={text.join('\n')} />
     </Modal>
   )
 }

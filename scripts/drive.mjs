@@ -121,6 +121,10 @@ await win.waitForTimeout(2500)
 await shot(win, '09-payment-done')
 const invText = await win.locator('.inv-preview').innerText().catch(() => '')
 log('invoice has "Service Charges" line:', invText.includes('Service Charges'))
+// The receipt the employee sees straight after payment must carry the logo —
+// it was once missing here while the Invoices screen had it.
+const logoOnReceipt = await win.locator('.inv-preview__logo').count()
+log('invoice shows the printed logo:', logoOnReceipt > 0, '(expected: true)')
 log('invoice has "PKR":', invText.includes('PKR'))
 log('payment screen text:', (await win.locator('.modal').innerText().catch(() => '')).slice(0, 260))
 

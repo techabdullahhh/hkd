@@ -5,6 +5,7 @@ import { api } from '../../lib/api'
 import { useCart } from '../../store/cart'
 import { toast } from '../../store/toast'
 import { Modal, Money } from '../../components/ui'
+import { ReceiptPreview } from '../../components/ReceiptPreview'
 import { formatMoney, toPaisa, toRupees } from '../../lib/format'
 import { run } from '../../lib/useAsync'
 
@@ -135,7 +136,7 @@ export function PaymentModal({ onClose, onDone }: { onClose: () => void; onDone:
             the Invoices screen.
           </div>
         )}
-        <div className="inv-preview">{result.invoice.snapshot ? renderText(result.invoice) : '—'}</div>
+        <ReceiptPreview text={result.invoice.snapshot ? renderText(result.invoice) : '—'} />
       </Modal>
     )
   }
