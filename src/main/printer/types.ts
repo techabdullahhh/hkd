@@ -21,7 +21,7 @@ export interface PrintResult {
 }
 
 export interface PrinterAdapter {
-  readonly mode: 'SYSTEM' | 'ESCPOS_BLUETOOTH'
+  readonly mode: 'SYSTEM' | 'ESCPOS_RAW'
   listPrinters(): Promise<PrinterInfo[]>
   probe(deviceName?: string | null): Promise<{ reachable: boolean; message: string }>
   print(doc: RenderedInvoice, opts: PrintOptions): Promise<PrintResult>

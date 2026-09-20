@@ -285,11 +285,28 @@ export interface PrinterInfo {
   isDefault: boolean
 }
 
+/**
+ * How invoices reach the printer.
+ *
+ *  SYSTEM      – through the printer's Windows/macOS driver, the way any
+ *                application prints. Works for USB (wired) and Bluetooth
+ *                printers alike once the driver is installed.
+ *  ESCPOS_RAW  – raw ESC/POS bytes written straight to the printer's queue,
+ *                bypassing the driver's page layout. The robust choice for
+ *                USB thermal receipt printers: exact width, auto-cut, no
+ *                blank paper feed. Needs an ESC/POS-compatible printer
+ *                (Black Copper, Xprinter, Epson TM, Rongta… — nearly all).
+ */
+export type PrinterMode = 'SYSTEM' | 'ESCPOS_RAW'
+
 export interface PrinterSettings {
-  mode: 'SYSTEM' | 'ESCPOS_BLUETOOTH'
+  mode: PrinterMode
+  /**
+   * The printer's queue name as the operating system knows it. Used by both
+   * modes. Null means "pick the most likely receipt printer automatically".
+   */
   selectedPrinter: string | null
   paperWidth: 58 | 80
-  escposAddress: string | null
   autoPrint: boolean
   copies: number
   /** Print the restaurant logo at the top of every invoice. */

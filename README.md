@@ -20,8 +20,9 @@ Currency is **PKR** throughout.
   `Subtotal − Discount + Service Charge = Total`. Configurable in Settings; the
   amount applied is frozen onto each order/invoice so history never changes
 - **Immutable invoices** with permanent numbers and frozen snapshots
-- **Thermal invoice printing** (58 mm / 80 mm) via the OS print stack, with a
-  clearly-marked adapter seam for a future direct ESC/POS Bluetooth driver
+- **Thermal invoice printing** (58 mm / 80 mm) to a wired USB receipt printer,
+  either through its driver with the page sized to the receipt, or as direct
+  ESC/POS raw bytes to its queue — logo, bold total and auto-cut included
 - **Admin** management of menu, deals, prices, employees, payment methods, and
   settings, plus reports, an append-only audit log, and backup / restore
 
@@ -206,9 +207,9 @@ To copy a menu (or everything) to a second machine:
 
 ### Printer on the new PC
 
-Pair or install the thermal printer in **Windows Settings → Bluetooth &
-devices → Printers** first, then open **Printer** in the app and select it.
-See §8 for the full printer guide.
+Plug the receipt printer in by USB and install its driver once, then open
+**Printer** in the app — it appears in the list. See §8 for the full guide,
+including the direct ESC/POS mode to use if the driver misbehaves.
 
 ### Updating later
 
@@ -430,45 +431,90 @@ still signed in, the next person can ring up sales under their name until
 somebody signs out. On a shared till, make "sign out at the end of your shift"
 part of the routine — or ask for an auto-lock to be added.
 
-## 8. Printer setup
+## 8. Printer setup (wired USB receipt printer)
 
-**Settings → Printer.**
+The restaurant's printer is a **wired USB thermal receipt printer** (Black
+Copper or similar). It works two ways, both configured under **Printer** in the
+app, and both use the same printer picked from the same list.
 
-### Bluetooth thermal printer as a normal OS printer (recommended)
+### Setting the printer up on the PC — once
 
-1. Pair the printer in Windows/macOS Bluetooth settings so it appears as a system
-   printer.
-2. In the app: **Printer mode = System printer**, pick it from **Selected
-   printer**, set **Paper width** (58 or 80 mm), click **Print test invoice**.
+1. Plug the printer into the PC by USB and switch it on.
+2. Install its Windows driver — from the CD in the box or the maker's site
+   (Black Copper: search "Black Copper BC-85AC driver"). If there is no driver
+   to be found, Windows' built-in one works for raw mode: *Settings → Bluetooth
+   & devices → Printers → Add device → Add manually → "Generic / Text Only"*,
+   on the USB port the printer appeared on.
+3. Open the app → **Printer** → **Refresh printers**. It appears in the list.
+4. Leave **Receipt printer** on *Automatic* (it picks the one that looks like a
+   receipt printer — a Black Copper will be chosen over an office laser) or
+   select it explicitly. Set **Paper width** to match the roll: 80 mm for the
+   BC-85/98 series, 58 mm for the small units.
+5. **Print test invoice.**
 
-The app renders the invoice to fixed-width HTML and prints it silently through
-Electron's print pipeline to the chosen device.
+From then on the cable is the only thing that matters. Plug it in and the
+printer is online; the app reads the printer list live, so nothing needs
+restarting.
 
-### Direct ESC/POS Bluetooth (advanced, hardware-specific)
+### The two ways of printing
 
-If your exact printer misbehaves as a generic OS printer, switch **Printer mode =
-Direct ESC/POS Bluetooth** and enter the serial port / address. This path is
-**intentionally inert until completed for your printer model** — see the header
-of `src/main/printer/EscposBluetoothAdapter.ts`. `buildEscPos()` already emits a
-valid Epson-compatible byte stream; only the transport (`serialport` or a vendor
-SDK) needs wiring. The app never pretends a printer is connected.
+**Through the printer's driver** (default — start here). The app lays the
+receipt out and prints it the way any program prints. The page is sized to the
+receipt — measured after rendering and requested at exactly that length — so
+the driver feeds one receipt's worth of paper and cuts. *(This used to be a
+fixed A4 length, which is the classic "20 cm of blank paper after every
+receipt" complaint.)*
+
+**Direct ESC/POS** (the robust choice for USB thermal printers). The app sends
+the printer its native command language — the same Epson-derived set every
+receipt printer speaks — as raw bytes to its Windows queue, bypassing the
+driver's page layout entirely. The printer uses its own font at the paper's
+native column count, burns the logo dot-for-dot, feeds four lines and fires
+the cutter. No page size, no scaling, no blank feed; nothing the driver can
+get wrong. Switch to it if driver mode feeds blank paper, prints tiny, or
+doesn't cut.
+
+How raw mode reaches the printer without a serial port, a Bluetooth address
+or a native USB library: Windows' spooler accepts a **RAW** document on any
+installed queue and passes the bytes to the device untouched. The app calls
+`winspool.drv` through a small PowerShell helper (the standard
+"RawPrinterHelper"; nothing to install). On macOS/Linux it is `lp -o raw`.
+See `src/main/printer/EscposRawAdapter.ts`.
+
+Both modes print the identical logo: one thresholding pass produces both the
+PNG the driver path embeds and the packed bitmap the ESC/POS path sends
+(`src/main/printer/thermalImage.ts`). The logo prints 45 mm wide on 80 mm
+paper, 30 mm on 58 mm.
 
 ### If printing fails
 
 The invoice is **always saved** with a permanent number. Its print status shows
 `FAILED`; every attempt is logged in `print_jobs`. Reprint from **Invoices** (or
 the payment-success screen) once the printer is back. An invoice is only marked
-`PRINTED` when the printer confirms the job.
+`PRINTED` when the spooler accepts the job.
 
-### Bluetooth troubleshooting
+### Troubleshooting
 
-| Symptom                     | Fix                                                              |
-| --------------------------- | --------------------------------------------------------------- |
-| No printers listed          | Re-pair in OS Bluetooth settings, then **Refresh printers**     |
-| "not currently available"   | Printer is off or out of range; power-cycle and bring it closer |
-| Prints blank / garbled      | Wrong paper width — toggle 58 ↔ 80 mm and test again            |
-| Cuts off right edge         | Set width to match the roll; check the printer's own DIP config |
-| Works once then stops       | Bluetooth sleep — disable power-saving for the COM port         |
+| Symptom                                   | Fix                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| No printers listed                        | Cable in? Driver installed? Then **Refresh printers**                                 |
+| "not installed right now"                 | The chosen printer has vanished from Windows — unplugged, or driver removed; re-pick  |
+| Long blank strip after each receipt       | The driver is ignoring the page size → switch to **Direct ESC/POS**                   |
+| Prints tiny / scaled                      | Same cause → **Direct ESC/POS**                                                       |
+| Cuts off the right edge                   | Paper width set wrong — toggle 58 ↔ 80 mm                                             |
+| Garbage characters in raw mode            | Printer is not ESC/POS (rare) → use driver mode                                       |
+| Nothing prints, no error                  | Check the Windows print queue for a stuck job; clear it, power-cycle the printer      |
+| Prints once, then stops                   | USB selective suspend — in Device Manager, untick "allow the computer to turn off…"    |
+
+### Verifying the page geometry without a printer
+
+`webContents.print` cannot be exercised on a machine with no printer, but the
+identical measurement and page request can be pushed through Electron's PDF
+pipeline. During development this confirmed one page at exactly the requested
+length for 1-, 5- and 40-line receipts on both paper widths (e.g. a one-item
+80 mm receipt: 80.1 × 177.8 mm, 1 page). Note that `printToPDF` takes the
+page size in **inches** while `print` takes **microns** — an easy way to fool
+yourself.
 
 ---
 

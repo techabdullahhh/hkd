@@ -2,6 +2,7 @@ import type { InvoiceSnapshot } from '@shared/types'
 import { formatMoney } from '@shared/money'
 import { formatDateTime } from '@shared/time'
 import type { RenderedInvoice } from './types'
+import { logoWidthMm } from './paper'
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
@@ -58,10 +59,10 @@ export function renderInvoice(snap: InvoiceSnapshot, opts: { logoDataUrl?: strin
     .rcpt { width:${contentMm}mm; margin:0 auto; padding:3mm 0 5mm; font-size:${width === 58 ? 10 : 11}px; line-height:1.35; }
     .center { text-align:center; }
     .name { font-size:${width === 58 ? 15 : 18}px; font-weight:700; letter-spacing:1px; }
-    /* The logo is already 1-bit art at the head's exact dot width, so it must
-       be laid out at that width and never resampled — smoothing would turn
+    /* The logo is already 1-bit art at exactly this many dots, so it is laid
+       out at that physical size and never resampled — smoothing would turn
        crisp strokes into greys the printer can only approximate. */
-    .logo { display:block; width:100%; margin:0 auto 1.5mm; image-rendering:pixelated; }
+    .logo { display:block; width:${logoWidthMm(width)}mm; margin:0 auto 1.5mm; image-rendering:pixelated; }
     .name-ur { font-size:${width === 58 ? 15 : 19}px; font-family:"Noto Nastaliq Urdu","Urdu Typesetting",serif; direction:rtl; line-height:2; margin-bottom:1mm; }
     .muted { color:#000; }
     .rule { border-top:1px dashed #000; margin:2mm 0; }

@@ -17,8 +17,8 @@ describe('printer failure handling', () => {
   beforeEach(async () => {
     freshDb()
     actAs('admin')
-    // direct ESC/POS mode with no transport = deterministic, honest failure
-    await updatePrinterSettings({ mode: 'ESCPOS_BLUETOOTH', escposAddress: null })
+    // direct ESC/POS mode on a machine with no printers = deterministic, honest failure
+    await updatePrinterSettings({ mode: 'ESCPOS_RAW' })
     actAs('victor1')
     openSession()
   })
@@ -32,7 +32,7 @@ describe('printer failure handling', () => {
       autoPrint: true
     })
     expect(r.printed).toBe(false)
-    expect(r.printMessage).toMatch(/not implemented|transport|System printer/i)
+    expect(r.printMessage).toMatch(/no printer is installed/i)
 
     const inv = db.select().from(schema.invoices).where(eq(schema.invoices.id, r.invoiceId)).get()!
     expect(inv.printStatus).toBe('FAILED')

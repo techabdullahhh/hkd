@@ -48,11 +48,19 @@ export interface ThermalImage {
   inkRatio: number
 }
 
+/** One ink-or-paper flag per dot, row-major, top-left origin. */
+export interface ThermalInk {
+  width: number
+  height: number
+  ink: Uint8Array
+}
+
 /**
- * Convert an arbitrary image to 1-bit line art `dots` wide, returned as a
- * PNG data URL ready to drop into the invoice HTML.
+ * Decode, scale to the head width and threshold. Both outputs — the PNG the
+ * driver path embeds in HTML and the packed bitmap the ESC/POS path sends —
+ * come from this one analysis, so the two modes print the identical image.
  */
-export function toThermalLineArt(source: Buffer, dots: number): ThermalImage | null {
+export function analyseThermal(source: Buffer, dots: number): ThermalInk | null {
   const img = nativeImage.createFromBuffer(source)
   if (img.isEmpty()) return null
 
@@ -83,7 +91,18 @@ export function toThermalLineArt(source: Buffer, dots: number): ThermalImage | n
     lum[i] = a === 0 ? 0 : y
   }
 
-  const ink = localAdaptiveThreshold(lum, width, height, windowHalfFor(dots), OFFSET_RATIO * 255)
+  return { width, height, ink: localAdaptiveThreshold(lum, width, height, windowHalfFor(dots), OFFSET_RATIO * 255) }
+}
+
+/**
+ * Convert an arbitrary image to 1-bit line art `dots` wide, returned as a
+ * PNG data URL ready to drop into the invoice HTML.
+ */
+export function toThermalLineArt(source: Buffer, dots: number): ThermalImage | null {
+  const analysed = analyseThermal(source, dots)
+  if (!analysed) return null
+  const { width, height, ink } = analysed
+  const n = width * height
 
   const out = Buffer.alloc(n * 4)
   let burnt = 0
@@ -160,7 +179,39 @@ export function localAdaptiveThreshold(
   return ink
 }
 
-/** Printable dots across the paper — the standard head widths. */
-export function dotsForPaper(paperWidth: 58 | 80): number {
-  return paperWidth === 58 ? 384 : 576
+/** A 1-bit raster in the layout ESC/POS `GS v 0` expects. */
+export interface ThermalRaster {
+  width: number
+  height: number
+  /** Bytes per row: ceil(width / 8). */
+  bytesPerRow: number
+  /** Row-major, MSB first within each byte, 1 = burn. */
+  data: Buffer
 }
+
+/**
+ * Pack ink flags into the byte layout thermal printers take directly:
+ * eight horizontal dots per byte, most significant bit leftmost, 1 = burn,
+ * rows padded to a whole byte. This is the raster the ESC/POS path sends,
+ * so the logo on a raw-mode receipt is dot-for-dot the driver-mode one.
+ */
+export function packRaster(analysed: ThermalInk): ThermalRaster {
+  const { width, height, ink } = analysed
+  const bytesPerRow = Math.ceil(width / 8)
+  const data = Buffer.alloc(bytesPerRow * height)
+  for (let y = 0; y < height; y++) {
+    const rowIn = y * width
+    const rowOut = y * bytesPerRow
+    for (let x = 0; x < width; x++) {
+      if (ink[rowIn + x]) data[rowOut + (x >> 3)] |= 0x80 >> (x & 7)
+    }
+  }
+  return { width, height, bytesPerRow, data }
+}
+
+export function toThermalRaster(source: Buffer, dots: number): ThermalRaster | null {
+  const analysed = analyseThermal(source, dots)
+  return analysed ? packRaster(analysed) : null
+}
+
+export { dotsForPaper } from './paper'

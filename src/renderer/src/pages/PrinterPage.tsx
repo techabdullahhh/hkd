@@ -24,7 +24,10 @@ export function PrinterPage(): JSX.Element {
       <div className="page-head">
         <div>
           <h1>Printer</h1>
-          <p>Bluetooth thermal printers paired with the operating system appear here automatically.</p>
+          <p>
+            Plug the receipt printer in by USB and install its driver once — it then appears here. Bluetooth
+            printers paired with Windows appear the same way.
+          </p>
         </div>
         <button className="btn btn--sm" onClick={state.reload}>
           Refresh printers
@@ -63,43 +66,48 @@ export function PrinterPage(): JSX.Element {
           </div>
           <div className="panel__body form-grid">
             <div className="field">
-              <label>Printer mode</label>
-              <select className="select" value={s.settings.mode} onChange={(e) => update({ mode: e.target.value as any })}>
-                <option value="SYSTEM">System printer (recommended)</option>
-                <option value="ESCPOS_BLUETOOTH">Direct ESC/POS Bluetooth (advanced)</option>
+              <label>Receipt printer</label>
+              <select
+                className="select"
+                value={s.settings.selectedPrinter ?? ''}
+                onChange={(e) => update({ selectedPrinter: e.target.value || null })}
+              >
+                <option value="">Automatic — the printer that looks like a receipt printer</option>
+                {s.availablePrinters.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.displayName} {p.isDefault ? '(Windows default)' : ''}
+                  </option>
+                ))}
               </select>
+              {s.availablePrinters.length === 0 && (
+                <span className="muted" style={{ fontSize: 'var(--text-xs)' }}>
+                  Nothing installed yet. Connect the USB cable, install the printer&rsquo;s driver, then
+                  press <strong>Refresh printers</strong>.
+                </span>
+              )}
             </div>
 
-            {s.settings.mode === 'SYSTEM' ? (
-              <div className="field">
-                <label>Selected printer</label>
-                <select
-                  className="select"
-                  value={s.settings.selectedPrinter ?? ''}
-                  onChange={(e) => update({ selectedPrinter: e.target.value || null })}
-                >
-                  <option value="">— none —</option>
-                  {s.availablePrinters.map((p) => (
-                    <option key={p.name} value={p.name}>
-                      {p.displayName} {p.isDefault ? '(system default)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div className="field">
-                <label>Bluetooth serial address / port</label>
-                <input
-                  className="input mono"
-                  defaultValue={s.settings.escposAddress ?? ''}
-                  placeholder="e.g. COM5  or  /dev/tty.PRINTER"
-                  onBlur={(e) => update({ escposAddress: e.target.value || null })}
-                />
-                <span className="muted" style={{ fontSize: 'var(--text-xs)' }}>
-                  Direct mode needs a hardware adapter to be completed for your exact printer model — see the README.
-                </span>
-              </div>
-            )}
+            <div className="field">
+              <label>How to send invoices</label>
+              <select className="select" value={s.settings.mode} onChange={(e) => update({ mode: e.target.value as any })}>
+                <option value="SYSTEM">Through the printer&rsquo;s driver (start here)</option>
+                <option value="ESCPOS_RAW">Direct ESC/POS — raw commands to the printer (USB thermal printers)</option>
+              </select>
+              <span className="muted" style={{ fontSize: 'var(--text-xs)', lineHeight: 1.55 }}>
+                {s.settings.mode === 'SYSTEM' ? (
+                  <>
+                    The receipt is laid out by this app and printed the way any program prints. If the printer
+                    feeds a long blank strip after each receipt, or prints tiny, switch to <strong>Direct ESC/POS</strong>.
+                  </>
+                ) : (
+                  <>
+                    The printer does its own layout and cuts after every receipt — the most reliable option for
+                    Black Copper, Xprinter, Epson TM and similar thermal printers. Uses the same printer chosen
+                    above; nothing else to configure.
+                  </>
+                )}
+              </span>
+            </div>
 
             <div className="form-row">
               <div className="field">
