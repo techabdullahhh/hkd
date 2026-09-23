@@ -29,7 +29,10 @@
     "db:seed": "electron-vite build && electron ./out/main/seed-cli.js",
     "build:win": "npm run build && electron-builder --win --x64",
     "build:dir": "npm run build && electron-builder --dir",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "build:linux": "npm run build && npx electron-builder --linux dir --x64 && node scripts/build-deb.mjs --arch amd64 --src release/linux-unpacked && node scripts/verify-deb.mjs release/hashmi-ka-dera-pos_1.0.0_amd64.deb",
+    "build:chromeos": "npm run build:linux && npm run build:linux:arm",
+    "build:linux:arm": "npm run build && npx electron-builder --linux dir --arm64 && node scripts/build-deb.mjs --arch arm64 --src release/linux-arm64-unpacked && node scripts/verify-deb.mjs release/hashmi-ka-dera-pos_1.0.0_arm64.deb"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

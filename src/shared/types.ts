@@ -313,9 +313,13 @@ export interface PrinterSettings {
   printLogo: boolean
 }
 
+/** Where the app is running, so the UI can give platform-specific advice. */
+export type HostPlatform = 'windows' | 'mac' | 'linux' | 'chromeos'
+
 export interface PrinterState {
   settings: PrinterSettings
   availablePrinters: PrinterInfo[]
+  platform: HostPlatform
   reachable: boolean
   message: string
 }

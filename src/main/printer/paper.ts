@@ -89,9 +89,26 @@ const RECEIPT_PRINTER_HINT =
  */
 export function pickReceiptPrinter(printers: PrinterInfo[]): PrinterInfo | null {
   if (printers.length === 0) return null
-  const looksLikeReceipt = printers.filter((p) => RECEIPT_PRINTER_HINT.test(`${p.name} ${p.displayName}`))
+
+  /*
+   * A raw USB device node outranks everything. Where one exists the printer
+   * is physically plugged into this machine and needs no spooler — which on
+   * Chrome OS is the only thing that works, and anywhere else is still the
+   * shortest path to the paper. A node that is not writable yet is skipped
+   * so the choice does not silently land on one that will fail.
+   */
+  const usable = (p: PrinterInfo): boolean => p.status === 0
+  const nodes = printers.filter((p) => p.name.startsWith('/dev/'))
+  const writableNode = nodes.find(usable)
+  if (writableNode) return writableNode
+
+  const queues = printers.filter((p) => !p.name.startsWith('/dev/'))
+  const looksLikeReceipt = queues.filter((p) => RECEIPT_PRINTER_HINT.test(`${p.name} ${p.displayName}`))
   if (looksLikeReceipt.length > 0) {
     return looksLikeReceipt.find((p) => p.isDefault) ?? looksLikeReceipt[0]
   }
-  return printers.find((p) => p.isDefault) ?? printers[0]
+  if (queues.length > 0) return queues.find((p) => p.isDefault) ?? queues[0]
+
+  // Only unwritable nodes left — return one so the UI can explain the fix.
+  return nodes[0] ?? null
 }

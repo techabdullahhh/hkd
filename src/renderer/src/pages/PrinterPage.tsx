@@ -25,8 +25,18 @@ export function PrinterPage(): JSX.Element {
         <div>
           <h1>Printer</h1>
           <p>
-            Plug the receipt printer in by USB and install its driver once — it then appears here. Bluetooth
-            printers paired with Windows appear the same way.
+            {s.platform === 'chromeos' ? (
+              <>
+                On Chrome OS the printer must first be shared with Linux:{' '}
+                <strong>Settings → About Chrome OS → Linux → Manage USB devices</strong>, then switch the
+                printer on. It appears below as <span className="mono">/dev/usb/lp0</span>.
+              </>
+            ) : (
+              <>
+                Plug the receipt printer in by USB and install its driver once — it then appears here.
+                Bluetooth printers paired with Windows appear the same way.
+              </>
+            )}
           </p>
         </div>
         <button className="btn btn--sm" onClick={state.reload}>
@@ -81,8 +91,17 @@ export function PrinterPage(): JSX.Element {
               </select>
               {s.availablePrinters.length === 0 && (
                 <span className="muted" style={{ fontSize: 'var(--text-xs)' }}>
-                  Nothing installed yet. Connect the USB cable, install the printer&rsquo;s driver, then
-                  press <strong>Refresh printers</strong>.
+                  {s.platform === 'chromeos' ? (
+                    <>
+                      Nothing connected yet. Share the printer with Linux in Chrome OS settings, then press{' '}
+                      <strong>Refresh printers</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Nothing installed yet. Connect the USB cable, install the printer&rsquo;s driver, then
+                      press <strong>Refresh printers</strong>.
+                    </>
+                  )}
                 </span>
               )}
             </div>
@@ -94,7 +113,12 @@ export function PrinterPage(): JSX.Element {
                 <option value="ESCPOS_RAW">Direct ESC/POS — raw commands to the printer (USB thermal printers)</option>
               </select>
               <span className="muted" style={{ fontSize: 'var(--text-xs)', lineHeight: 1.55 }}>
-                {s.settings.mode === 'SYSTEM' ? (
+                {s.platform === 'chromeos' && s.settings.mode === 'SYSTEM' ? (
+                  <>
+                    <strong>Chrome OS needs Direct ESC/POS.</strong> The Linux container has no print system,
+                    so this option cannot reach the printer — switch it above.
+                  </>
+                ) : s.settings.mode === 'SYSTEM' ? (
                   <>
                     The receipt is laid out by this app and printed the way any program prints. If the printer
                     feeds a long blank strip after each receipt, or prints tiny, switch to <strong>Direct ESC/POS</strong>.

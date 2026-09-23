@@ -4,8 +4,24 @@ import { initDatabase } from './db/connection'
 import { seedAll } from './db/seed'
 import { registerIpc } from './ipc/register'
 import { readImage, type ImageOwner } from './services/images'
+import { isChromeOsContainer } from './platform'
 
 const isDev = !app.isPackaged
+
+/*
+ * Chrome OS runs this app inside a Linux container whose display goes
+ * through a Wayland bridge, not a real GPU stack. Electron's GPU defaults
+ * assume the latter and the result is a black or torn window, so on Chrome
+ * OS — and only there — compositing is done on the CPU. A receipt POS is
+ * text and a few images; it costs nothing visible.
+ */
+if (isChromeOsContainer()) {
+  app.disableHardwareAcceleration()
+  app.commandLine.appendSwitch('disable-gpu-compositing')
+  // Crostini containers often lack the shared memory Chromium wants for
+  // its renderer, which shows up as a renderer that dies on launch.
+  app.commandLine.appendSwitch('disable-dev-shm-usage')
+}
 
 /**
  * Menu photos are served over their own scheme rather than shipped through

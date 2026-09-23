@@ -8,6 +8,8 @@ import type { PrinterAdapter, PrintOptions, PrintResult, RenderedInvoice } from 
 import type { ThermalRaster } from './thermalImage'
 import { buildEscPos } from './escpos'
 import { SystemPrinterAdapter } from './SystemPrinterAdapter'
+import { pickReceiptPrinter } from './paper'
+import { isDeviceNode, usbNodesAsPrinters, writeToDeviceNode } from './usbDevice'
 
 const run = promisify(execFile)
 
@@ -27,6 +29,10 @@ const run = promisify(execFile)
  *    or with Windows' built-in "Generic / Text Only" driver; either works,
  *    because the driver is never asked to lay anything out.
  *  - On **macOS / Linux**, `lp -o raw` does the same through CUPS.
+ *  - On **Chrome OS** (and any Linux box with no CUPS), the printer's own
+ *    device node — `/dev/usb/lp0` — is written to directly. The Crostini
+ *    container has no print spooler at all, so this is the only path that
+ *    works there, and it is the most reliable one anywhere on Linux.
  *
  * So the printer is chosen from the very same list as System mode. Plug the
  * USB cable in, install the printer once, pick it — done.
@@ -41,21 +47,56 @@ export class EscposRawAdapter implements PrinterAdapter {
 
   constructor(private readonly logoFor: (paperWidth: 58 | 80) => ThermalRaster | null) {}
 
-  listPrinters(): Promise<PrinterInfo[]> {
-    return this.queues.listPrinters()
+  /**
+   * CUPS queues *and* raw USB device nodes, so both appear in the ordinary
+   * printer picker and everything downstream treats them the same way.
+   */
+  async listPrinters(): Promise<PrinterInfo[]> {
+    const [queues, nodes] = await Promise.all([this.queues.listPrinters(), Promise.resolve(usbNodesAsPrinters())])
+    return [...nodes, ...queues]
   }
 
   async probe(deviceName?: string | null): Promise<{ reachable: boolean; message: string }> {
-    const base = await this.queues.probe(deviceName)
-    if (!base.reachable) return base
     if (process.platform !== 'win32' && process.platform !== 'darwin' && process.platform !== 'linux') {
       return { reachable: false, message: `Raw ESC/POS printing is not supported on ${process.platform}.` }
     }
+
+    const target = await this.resolve(deviceName)
+    if (!target) {
+      const nodes = usbNodesAsPrinters()
+      return {
+        reachable: false,
+        message:
+          nodes.length > 0
+            ? 'A USB printer is connected but not selected. Choose it under Configuration.'
+            : process.platform === 'linux'
+              ? 'No printer found. On Chrome OS, share the printer with Linux first: Settings → About Chrome OS → Linux → Manage USB devices.'
+              : 'No printer is installed on this computer.'
+      }
+    }
+
+    if (isDeviceNode(target.name)) {
+      const node = usbNodesAsPrinters().find((n) => n.name === target.name)
+      if (!node) return { reachable: false, message: `${target.name} is not connected right now.` }
+      if (node.status !== 0)
+        return { reachable: false, message: `${target.name} is connected but not writable by this user. Run: sudo usermod -aG lp $USER` }
+      return { reachable: true, message: `Ready — direct USB to ${target.name}.` }
+    }
+
+    const base = await this.queues.probe(target.name)
+    if (!base.reachable) return base
     return { reachable: true, message: base.message.replace(/is ready\.$/, 'is ready (direct ESC/POS).') }
   }
 
+  /** The printer this adapter will use: an explicit choice, else the best guess. */
+  private async resolve(deviceName?: string | null): Promise<PrinterInfo | null> {
+    const all = await this.listPrinters()
+    if (deviceName) return all.find((p) => p.name === deviceName) ?? null
+    return pickReceiptPrinter(all)
+  }
+
   async print(doc: RenderedInvoice, opts: PrintOptions): Promise<PrintResult> {
-    const { printer } = await this.queues.resolvePrinter(opts.deviceName)
+    const printer = await this.resolve(opts.deviceName)
     if (!printer) {
       return {
         ok: false,
@@ -68,6 +109,21 @@ export class EscposRawAdapter implements PrinterAdapter {
 
     const payload = buildEscPos(doc, { logo: this.logoFor(opts.paperWidth) })
     const copies = Math.max(1, opts.copies ?? 1)
+
+    // A device node needs no spooler, no temp file and no child process.
+    if (isDeviceNode(printer.name)) {
+      try {
+        for (let i = 0; i < copies; i++) writeToDeviceNode(printer.name, payload)
+        return {
+          ok: true,
+          message: `Sent ${payload.length.toLocaleString()} bytes straight to ${printer.name}.`,
+          printerName: printer.name
+        }
+      } catch (e) {
+        return { ok: false, message: e instanceof Error ? e.message : String(e), printerName: printer.name }
+      }
+    }
+
     const dir = mkdtempSync(join(tmpdir(), 'hkd-print-'))
     try {
       const file = join(dir, 'receipt.bin')
@@ -97,6 +153,11 @@ function describeFailure(e: unknown, printerName: string): string {
   if (/OpenPrinter failed: 1801/.test(raw)) return `Windows does not know a printer called "${printerName}". Refresh the printer list and pick it again.`
   if (/StartDocPrinter failed|WritePrinter failed/.test(raw))
     return `"${printerName}" did not accept the job. Check that it is plugged in, switched on and has paper. (${raw.trim()})`
+  if (/ENOENT/.test(raw) && /lp\b/.test(raw))
+    return (
+      'This Linux system has no `lp` command (Chrome OS has none by default). ' +
+      'Connect the printer by USB and pick its /dev/usb/lp0 entry instead, or install CUPS with: sudo apt install cups-client'
+    )
   if (/ENOENT/.test(raw)) return `The print helper is missing on this computer (${raw.trim()}).`
   return raw.trim() || 'Unknown printing error.'
 }

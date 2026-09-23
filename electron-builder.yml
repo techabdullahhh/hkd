@@ -50,9 +50,30 @@ mac:
     - dmg
   category: public.app-category.business
 
+# Chrome OS installs Linux software from a .deb by double-clicking it in the
+# Files app, so that is what the restaurant gets. The .deb is NOT built here:
+# electron-builder's bundled fpm shells out to macOS's `ar`, which writes a
+# BSD archive dpkg cannot read — and reports success while doing it. Instead
+# `npm run build:chromeos` produces the unpacked tree with the `dir` target
+# below and packs it with scripts/build-deb.mjs, which is then checked by
+# scripts/verify-deb.mjs. AppImage stays for other distributions; it is a poor
+# fit for Chrome OS, whose container usually lacks the FUSE an AppImage needs.
+# Chromebooks ship with both Intel and ARM processors, hence both arches.
 linux:
   target:
-    - AppImage
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
   category: Office
+  synopsis: Restaurant point of sale for Hashmi Ka Dera
+  description: Offline point-of-sale and management system — orders, invoices, thermal receipt printing, employee sessions and reporting.
+  desktop:
+    entry:
+      Name: Hashmi Ka Dera POS
+      Comment: Restaurant point of sale
+      Categories: Office;Finance;
+      StartupWMClass: Hashmi Ka Dera POS
+
 
 publish: null

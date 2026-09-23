@@ -20,6 +20,8 @@ Currency is **PKR** throughout.
   `Subtotal − Discount + Service Charge = Total`. Configurable in Settings; the
   amount applied is frozen onto each order/invoice so history never changes
 - **Immutable invoices** with permanent numbers and frozen snapshots
+- **Runs on Windows, macOS, Linux and Chrome OS** (via the Linux container),
+  from one codebase — see §8a for the Chromebook specifics
 - **Thermal invoice printing** (58 mm / 80 mm) to a wired USB receipt printer,
   either through its driver with the page sized to the receipt, or as direct
   ESC/POS raw bytes to its queue — logo, bold total and auto-cut included
@@ -518,6 +520,125 @@ yourself.
 
 ---
 
+## 8a. Running on a Chromebook (Chrome OS)
+
+Chrome OS cannot run Windows software. What it *can* run is Linux software,
+inside a container it calls the **Linux development environment** (Crostini) —
+and that is how this app runs there.
+
+### First: can this Chromebook do it at all?
+
+Open **Settings** and search for **Linux**.
+
+- **"Linux development environment" is listed** → it will work. Turn it on
+  (allow ~10 GB of disk) and continue below.
+- **Not listed at all** → this Chromebook cannot run the app, and no change to
+  the code can alter that. See *If Linux is unavailable*.
+
+This is the honest floor: Linux support arrived in **Chrome OS 69** (2018) and
+became dependable around **Chrome OS 80**. Chromebooks older than that, a few
+low-end models that never received it, and **school or company-managed
+Chromebooks where an administrator has blocked it**, cannot install it. On a
+supported device the Chrome OS version otherwise does not matter — old and new
+both work, because the app runs in its own container with its own libraries.
+
+### Installing
+
+1. Send the right package for the Chromebook's processor:
+   - **`hashmi-ka-dera-pos_1.0.0_amd64.deb`** — Intel/AMD, most Chromebooks
+   - **`hashmi-ka-dera-pos_1.0.0_arm64.deb`** — ARM (MediaTek, Snapdragon)
+
+   Unsure? In the Linux terminal run `dpkg --print-architecture`.
+2. Put the file in the **Linux files** folder in the Files app.
+3. Double-click it → **Install**. It appears in the launcher as
+   *Hashmi Ka Dera POS*.
+
+Then set it up exactly as on any other machine: the first account created
+becomes the admin (§5a).
+
+### The printer on Chrome OS
+
+This is the part that differs most, and it is why the app behaves differently
+here.
+
+Printers configured in Chrome OS itself are **invisible** inside the Linux
+container, and that container ships with no print system whatsoever — `lp`
+does not exist. The driver-based print path therefore cannot work on a
+Chromebook at all.
+
+What does work is direct USB. Once the printer is shared into the container
+the kernel exposes it as `/dev/usb/lp0`, and ESC/POS bytes written to that
+file *are* the protocol. So on Chrome OS the app defaults to **Direct
+ESC/POS**, lists the device node as a printer, and prefers it automatically.
+
+1. Plug the printer in and switch it on.
+2. **Settings → About Chrome OS → Linux → Manage USB devices**, and turn the
+   printer's switch on. (Chrome OS may also offer this in a notification when
+   you plug it in.)
+3. In the app: **Printer → Refresh printers**. It appears as
+   `USB receipt printer (/dev/usb/lp0)`.
+4. **Print test invoice.**
+
+**If it says the printer needs permission**, the container user is not in the
+`lp` group. Open the Linux terminal, run this once, then sign out of Chrome OS
+and back in:
+
+```bash
+sudo usermod -aG lp $USER
+```
+
+The app detects this exact case and shows that command rather than a bare
+"permission denied".
+
+### Other Chrome OS notes
+
+- **Graphics.** Chrome OS puts Linux apps on screen through a Wayland bridge
+  rather than a real GPU stack, which leaves Electron's defaults showing a
+  black or torn window. The app detects the container and switches to CPU
+  compositing there — and only there, so a normal Linux PC keeps hardware
+  acceleration.
+- **Data** lives in `~/.config/hashmi-ka-dera-pos/data/` *inside the
+  container*. Chrome OS's own Files app does not see it, so take backups
+  through **Settings → Backup** and copy them into **Linux files**, which is
+  shared with Chrome OS.
+- **Screen size.** Chromebooks are often 1366×768. The layout is audited at
+  that size and smaller.
+- **Performance.** A 4 GB Chromebook runs this, but the container wants about
+  1 GB of that. 8 GB is comfortable.
+
+### If Linux is unavailable
+
+If the Chromebook has no Linux option, the realistic choices are, in order of
+sense:
+
+1. **Use a cheap Windows mini-PC or laptop** for the till. The Windows
+   installer already exists and is the best-tested path.
+2. **Use a newer Chromebook** — anything from roughly 2019 onwards has Linux.
+3. Rebuilding the app as a web or Android application would be a different
+   product, not a setting: the entire design rests on an embedded database and
+   direct printer access, neither of which a Chrome OS browser tab has.
+
+### Building the Chrome OS packages
+
+```bash
+npm run build:chromeos       # both architectures, verified
+npm run build:linux          # amd64 only
+npm run build:linux:arm      # arm64 only
+```
+
+The `.deb` is **not** produced by electron-builder. Its bundled `fpm` shells
+out to the host's `ar`, and on macOS that writes a BSD archive with a symbol
+table instead of the GNU archive `dpkg` expects — emitting a 96-byte file
+*and reporting success*, a failure that would surface only on the Chromebook.
+`scripts/build-deb.mjs` writes the archive directly instead (no toolchain, same
+bytes everywhere), and `scripts/verify-deb.mjs` reads the finished artifact
+back with an independent parser, checking 25 things including that
+`chrome-sandbox` is setuid root, that the desktop entry's `Exec` points at a
+file that is actually in the package, and that every `md5sums` entry matches
+its bytes. Both build scripts run the verifier and fail if it does.
+
+---
+
 ## 9. Backup & restore
 
 **Settings → Backup & restore.**
@@ -632,7 +753,8 @@ src/
 resources/
   menu-images/        bundled menu photography + sources.json + manifest.json
   brand/              the logo printed on invoices (colour source)
-scripts/              build-menu-images, smoke driver, layout/accessibility audit
+scripts/              build-menu-images, build-deb + verify-deb (Chrome OS),
+                      smoke driver, layout/accessibility audit
 tests/                Vitest suites + electron mock
 ```
 

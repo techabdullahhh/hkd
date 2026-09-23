@@ -10,6 +10,7 @@ import { requireAdmin, requireAuth } from './context'
 import { BRAND_LOGO_ID, clearImage, imageStamp, pickAndSetLogo, readImage } from './images'
 import { toThermalLineArt, toThermalRaster, type ThermalRaster } from '../printer/thermalImage'
 import { logoDotsForPaper } from '../printer/paper'
+import { isChromeOsContainer } from '../platform'
 
 const DEFAULTS: PrinterSettings = {
   mode: 'SYSTEM',
@@ -22,19 +23,32 @@ const DEFAULTS: PrinterSettings = {
 
 const KEY = 'printer.settings'
 
+/**
+ * Chrome OS gets raw ESC/POS out of the box. Its Linux container has no
+ * print system at all, so the driver path cannot reach a printer there —
+ * defaulting to it would mean every fresh Chromebook install fails its
+ * first test print for a reason nobody could guess.
+ */
+function defaultsForHost(): PrinterSettings {
+  return isChromeOsContainer() ? { ...DEFAULTS, mode: 'ESCPOS_RAW' } : { ...DEFAULTS }
+}
+
 export function getPrinterSettings(): PrinterSettings {
   const row = db.select().from(schema.appSettings).where(eq(schema.appSettings.key, KEY)).get()
-  if (!row) return { ...DEFAULTS }
+  if (!row) return defaultsForHost()
   try {
     const stored = JSON.parse(row.value) as Omit<Partial<PrinterSettings>, 'mode'> & { mode?: string; escposAddress?: unknown }
     // An install configured before raw mode existed may still say
     // ESCPOS_BLUETOOTH; that adapter never worked, so raw is its successor.
     const legacy = stored.mode as string | undefined
-    const mode: PrinterSettings['mode'] = legacy === 'ESCPOS_RAW' || legacy === 'ESCPOS_BLUETOOTH' ? 'ESCPOS_RAW' : 'SYSTEM'
+    const mode: PrinterSettings['mode'] =
+      legacy === 'ESCPOS_RAW' || legacy === 'ESCPOS_BLUETOOTH' || (!legacy && isChromeOsContainer())
+        ? 'ESCPOS_RAW'
+        : 'SYSTEM'
     const { escposAddress: _legacy, ...rest } = stored
-    return { ...DEFAULTS, ...rest, mode }
+    return { ...defaultsForHost(), ...rest, mode }
   } catch {
-    return { ...DEFAULTS }
+    return defaultsForHost()
   }
 }
 
@@ -81,7 +95,13 @@ export async function getPrinterState(): Promise<PrinterState> {
     availablePrinters = []
   }
   const probe = await probePrinter()
-  return { settings, availablePrinters, reachable: probe.reachable, message: probe.message }
+  return {
+    settings,
+    availablePrinters,
+    reachable: probe.reachable,
+    message: probe.message,
+    platform: isChromeOsContainer() ? 'chromeos' : process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'mac' : 'linux'
+  }
 }
 
 export async function updatePrinterSettings(patch: Partial<PrinterSettings>): Promise<PrinterState> {
