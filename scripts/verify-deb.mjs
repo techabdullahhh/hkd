@@ -95,13 +95,67 @@ print('\n  %s  %.1f MB, %s, %d entries' % (os.path.basename(deb), size_mb, arch,
 sys.exit(1 if fail else 0)
 `
 
+/**
+ * If real dpkg is on this machine, let it have the final word.
+ *
+ * The checks above are deliberately independent of the packer, but they are
+ * still my reading of the format rather than dpkg's. `dpkg-deb` is the actual
+ * consumer, so when it is available its verdict outranks mine. It is not a
+ * requirement — the packer has to work on a machine with no dpkg at all,
+ * which is the normal case on macOS — so absence is reported, not failed.
+ *
+ * Install it with `brew install dpkg` to enable this. Note that Homebrew's
+ * build cannot *install* packages (no `dpkg -i`), but it reads them fine,
+ * which is all this needs.
+ */
+function crossCheckWithDpkg() {
+  let version
+  try {
+    version = execFileSync('dpkg-deb', ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+      .split('\n')[0]
+      .trim()
+  } catch {
+    console.log('\n  SKIP  cross-check against real dpkg — dpkg-deb not installed (brew install dpkg)')
+    return true
+  }
+
+  const run = (args) => execFileSync('dpkg-deb', [...args, file], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  let ok = true
+  const check = (name, pass) => {
+    console.log((pass ? '  PASS  ' : '  FAIL  ') + name)
+    if (!pass) ok = false
+  }
+
+  console.log(`\n  cross-check with ${version}`)
+  try {
+    const info = run(['--info'])
+    check('dpkg-deb reads the archive', /new Debian package, version 2\.0/.test(info))
+    check('dpkg-deb parses the control fields', /^ Package: /m.test(info))
+  } catch (e) {
+    check('dpkg-deb reads the archive', false)
+    process.stderr.write(String(e.stderr ?? e.message))
+  }
+  try {
+    check('dpkg-deb lists the payload', run(['--contents']).trim().split('\n').length > 50)
+  } catch (e) {
+    check('dpkg-deb lists the payload', false)
+    process.stderr.write(String(e.stderr ?? e.message))
+  }
+  return ok
+}
+
+let structurallyOk = true
 try {
-  const out = execFileSync('python3', ['-c', script, file], { encoding: 'utf8' })
-  process.stdout.write(out)
-  console.log('\n✅  package verified')
+  process.stdout.write(execFileSync('python3', ['-c', script, file], { encoding: 'utf8' }))
 } catch (e) {
   process.stdout.write(e.stdout ?? '')
   process.stderr.write(e.stderr ?? '')
+  structurallyOk = false
+}
+
+if (structurallyOk && crossCheckWithDpkg()) {
+  console.log('\n✅  package verified')
+} else {
   console.error('\n❌  package is NOT installable — do not ship it')
   process.exit(1)
 }

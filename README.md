@@ -582,6 +582,60 @@ what the Files app offers.
 Then set it up exactly as on any other machine: the first account created
 becomes the admin (§5a).
 
+### When the install fails
+
+Two messages come up often enough to name, because neither means what it
+sounds like.
+
+**`Error: Unsupported file ./hashmi-ka-dera-pos_1.0.0_amd64.deb given on
+commandline`**
+
+This is not a complaint about the package. `apt` prints it when the path does
+not resolve to an existing `.deb` — it never opened the file. The usual cause
+is that the terminal's working directory is not where the file is: Terminal
+starts in the Linux home directory, which is the **Linux files** folder, so a
+download still sitting in Chrome OS **Downloads** is not there. Find it:
+
+```bash
+pwd
+ls -l ~/*.deb
+```
+
+Then install it by the name `ls` actually printed. Watch for a browser or
+Drive having renamed it (`…deb (1)`, `….deb.crdownload`) — quote the name if
+it contains spaces. A file in Chrome OS Downloads can be reached at
+`/mnt/chromeos/MyFiles/Downloads/` *if* that folder has been shared with
+Linux, but moving it into Linux files is simpler.
+
+**`Error: dpkg was interrupted, you must manually run 'sudo dpkg --configure
+-a' to correct the problem.`**
+
+An earlier attempt left dpkg's database half-finished, and `apt` refuses to
+proceed until it is cleared. Do what it says, then install again:
+
+```bash
+sudo dpkg --configure -a
+```
+
+**If `apt` cannot reach the network**, install the dependencies from a machine
+that can and use dpkg directly — this also side-steps `apt` argument handling
+entirely:
+
+```bash
+sudo apt install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 \
+  xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
+sudo dpkg -i ./hashmi-ka-dera-pos_1.0.0_amd64.deb
+```
+
+**To rule out a corrupted transfer**, compare the checksum against the build
+machine (`shasum -a 256` on macOS, `sha256sum` on Linux). A truncated copy is
+the one failure mode that genuinely is the file's fault, and `.deb` files this
+large do get truncated by flaky USB sticks and cloud sync:
+
+```bash
+sha256sum ~/hashmi-ka-dera-pos_1.0.0_amd64.deb
+```
+
 ### Uninstalling or upgrading
 
 ```bash
