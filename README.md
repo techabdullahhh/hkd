@@ -549,12 +549,48 @@ both work, because the app runs in its own container with its own libraries.
    - **`hashmi-ka-dera-pos_1.0.0_arm64.deb`** — ARM (MediaTek, Snapdragon)
 
    Unsure? In the Linux terminal run `dpkg --print-architecture`.
-2. Put the file in the **Linux files** folder in the Files app.
-3. Double-click it → **Install**. It appears in the launcher as
-   *Hashmi Ka Dera POS*.
+2. Put the file in the **Linux files** folder in the Files app. That folder
+   *is* the container's home directory, which is why it is the easy place to
+   put it — anywhere else has to be shared with Linux first.
+3. Open the **Terminal** app and install it:
+
+   ```bash
+   sudo apt update
+   sudo apt install ./hashmi-ka-dera-pos_1.0.0_amd64.deb
+   ```
+
+   It appears in the launcher as *Hashmi Ka Dera POS*, or runs as
+   `hashmi-ka-dera-pos`.
+
+Two things about that command, both of which bite people:
+
+- The leading **`./`** is required. Without it `apt` treats the argument as a
+  package *name* to look up in the repositories and reports that it cannot
+  find it, which reads like a broken file but is not.
+- It needs **internet for this one step**. The package depends on nine system
+  libraries (GTK, NSS, libsecret and friends) that Crostini does not ship, and
+  `apt` fetches them. `sudo dpkg -i` is *not* a substitute: it does not
+  resolve dependencies and will leave the package half-configured. If you have
+  already run it and are stuck, `sudo apt --fix-broken install` recovers.
+
+Older Chrome OS versions could install a `.deb` by double-clicking it in the
+Files app. **Recent versions removed that**, and say *"Debian package installs
+are no longer supported"*. The terminal command above is the supported route
+and works on every version that has Linux at all — so use it regardless of
+what the Files app offers.
 
 Then set it up exactly as on any other machine: the first account created
 becomes the admin (§5a).
+
+### Uninstalling or upgrading
+
+```bash
+sudo apt remove hashmi-ka-dera-pos              # keeps the database
+sudo apt install ./hashmi-ka-dera-pos_1.0.1_amd64.deb   # upgrade in place
+```
+
+Neither touches the data: the database lives in the user's config directory
+(§5a), not in the installed package. Take a backup before upgrading anyway.
 
 ### The printer on Chrome OS
 
