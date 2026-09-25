@@ -617,6 +617,33 @@ proceed until it is cleared. Do what it says, then install again:
 sudo dpkg --configure -a
 ```
 
+**`Unsatisfied dependencies:` listing packages this app has never heard of**
+— `node-*`, or anything else unrelated to the nine libraries in `Depends`.
+
+This is the container being broken *before* the POS was involved, usually by
+Debian's Node packages or a third-party repository added earlier. `apt` will
+not install anything at all while any package is in that state, so it fails
+here despite having nothing to do with this package. Repair it, then install:
+
+```bash
+sudo apt --fix-broken install     # run twice; the second should do nothing
+```
+
+If it still cannot resolve them, remove the offending packages outright —
+nothing in this app depends on them:
+
+```bash
+sudo apt remove --purge <the packages it named>
+```
+
+Worth knowing because the message arrives *before* `apt` has looked at the
+architecture, so a container in this state hides a wrong-architecture package
+behind an unrelated error.
+
+**`package architecture (arm64) does not match system (amd64)`** — the wrong
+one of the two packages. Check with `dpkg --print-architecture` and send the
+matching file; the name in `Depends` is not the issue.
+
 **If `apt` cannot reach the network**, install the dependencies from a machine
 that can and use dpkg directly — this also side-steps `apt` argument handling
 entirely:
