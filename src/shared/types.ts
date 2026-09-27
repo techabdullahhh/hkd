@@ -286,26 +286,61 @@ export interface PrinterInfo {
 }
 
 /**
- * How invoices reach the printer.
+ * How invoices reach the printer. All four send the same receipt; they differ
+ * only in how the bytes get there, and each exists because the others are
+ * blocked on some machine the app has to run on.
  *
- *  SYSTEM      – through the printer's Windows/macOS driver, the way any
- *                application prints. Works for USB (wired) and Bluetooth
- *                printers alike once the driver is installed.
- *  ESCPOS_RAW  – raw ESC/POS bytes written straight to the printer's queue,
- *                bypassing the driver's page layout. The robust choice for
- *                USB thermal receipt printers: exact width, auto-cut, no
- *                blank paper feed. Needs an ESC/POS-compatible printer
- *                (Black Copper, Xprinter, Epson TM, Rongta… — nearly all).
+ *  SYSTEM            – through the printer's Windows/macOS driver, the way any
+ *                      application prints. Works for USB and Bluetooth alike
+ *                      once the driver is installed. Not available on Chrome
+ *                      OS, whose Linux container has no print system.
+ *  ESCPOS_RAW        – raw ESC/POS bytes to the printer's queue or straight to
+ *                      its USB device node, bypassing the driver's page
+ *                      layout. The most reliable choice for a *wired* thermal
+ *                      printer: exact width, auto-cut, no blank paper feed.
+ *  ESCPOS_BLUETOOTH  – raw ESC/POS over a paired Bluetooth printer's serial
+ *                      port (COM5, /dev/rfcomm0, /dev/cu.*). Also serves a
+ *                      wired serial printer, which is the same transport.
+ *                      Cannot work on Chrome OS: Crostini gets no Bluetooth
+ *                      adapter.
+ *  ESCPOS_NETWORK    – raw ESC/POS to a Wi-Fi/Ethernet printer on TCP 9100.
+ *                      The fewest moving parts of any mode, and the only
+ *                      wireless option that works on Chrome OS.
+ *
+ * All the ESC/POS modes need an ESC/POS-compatible printer, which in practice
+ * means nearly all of them (Black Copper, Xprinter, Epson TM, Rongta…).
  */
-export type PrinterMode = 'SYSTEM' | 'ESCPOS_RAW'
+export type PrinterMode = 'SYSTEM' | 'ESCPOS_RAW' | 'ESCPOS_BLUETOOTH' | 'ESCPOS_NETWORK'
+
+/** The modes that cannot work on the current host, with the reason. */
+export interface ModeAvailability {
+  mode: PrinterMode
+  available: boolean
+  reason: string
+}
 
 export interface PrinterSettings {
   mode: PrinterMode
   /**
-   * The printer's queue name as the operating system knows it. Used by both
-   * modes. Null means "pick the most likely receipt printer automatically".
+   * The printer as the operating system knows it — a queue name, a USB device
+   * node (`/dev/usb/lp0`) or a serial port (`COM5`, `/dev/rfcomm0`), depending
+   * on the mode. Null means "pick the most likely receipt printer
+   * automatically", which is what every mode but ESCPOS_NETWORK can do.
    */
   selectedPrinter: string | null
+  /**
+   * The network printer's address, `host` or `host:port`, port 9100 assumed.
+   * Only used by ESCPOS_NETWORK, and kept separate from `selectedPrinter` so
+   * that switching modes to try something else does not lose it.
+   */
+  networkAddress: string | null
+  /**
+   * Serial line speed for ESCPOS_BLUETOOTH. Meaningless over Bluetooth, where
+   * the link speed is negotiated by Bluetooth itself, but it matters for a
+   * wired serial printer on the same transport — at the wrong speed those
+   * print garbage.
+   */
+  baudRate: number
   paperWidth: 58 | 80
   autoPrint: boolean
   copies: number
@@ -322,6 +357,19 @@ export interface PrinterState {
   platform: HostPlatform
   reachable: boolean
   message: string
+  /**
+   * Which modes this machine can actually use. The UI disables the rest with
+   * the reason attached, rather than offering a choice that silently fails —
+   * the Chrome OS Bluetooth case being the one that would otherwise cost
+   * somebody an afternoon.
+   */
+  modes: ModeAvailability[]
+}
+
+/** A Bluetooth device the operating system has already paired. */
+export interface PairedBluetoothDevice {
+  address: string
+  name: string
 }
 
 export interface AppSettings {

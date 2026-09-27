@@ -1,10 +1,16 @@
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/connection'
 import { AppError } from '@shared/errors'
-import type { PrinterInfo, PrinterSettings, PrinterState } from '@shared/types'
+import type { PairedBluetoothDevice, PrinterInfo, PrinterSettings, PrinterState } from '@shared/types'
 import type { PrinterAdapter, RenderedInvoice } from '../printer/types'
 import { SystemPrinterAdapter } from '../printer/SystemPrinterAdapter'
 import { EscposRawAdapter } from '../printer/EscposRawAdapter'
+import { EscposBluetoothAdapter } from '../printer/EscposBluetoothAdapter'
+import { EscposNetworkAdapter } from '../printer/EscposNetworkAdapter'
+import { defaultModeForHost, isPrinterMode, modeAvailability, reconcileMode } from '../printer/modes'
+import { BAUD_RATES, DEFAULT_BAUD } from '../printer/serialPort'
+import { bindRfcomm, listPairedDevices } from '../printer/bluetooth'
+import { formatTarget, parseTarget, scanForPrinters } from '../printer/networkPrinter'
 import { audit } from './audit'
 import { requireAdmin, requireAuth } from './context'
 import { BRAND_LOGO_ID, clearImage, imageStamp, pickAndSetLogo, readImage } from './images'
@@ -15,6 +21,8 @@ import { isChromeOsContainer } from '../platform'
 const DEFAULTS: PrinterSettings = {
   mode: 'SYSTEM',
   selectedPrinter: null,
+  networkAddress: null,
+  baudRate: DEFAULT_BAUD,
   paperWidth: 80,
   autoPrint: true,
   copies: 1,
@@ -30,23 +38,24 @@ const KEY = 'printer.settings'
  * first test print for a reason nobody could guess.
  */
 function defaultsForHost(): PrinterSettings {
-  return isChromeOsContainer() ? { ...DEFAULTS, mode: 'ESCPOS_RAW' } : { ...DEFAULTS }
+  return { ...DEFAULTS, mode: defaultModeForHost() }
 }
 
 export function getPrinterSettings(): PrinterSettings {
   const row = db.select().from(schema.appSettings).where(eq(schema.appSettings.key, KEY)).get()
   if (!row) return defaultsForHost()
   try {
-    const stored = JSON.parse(row.value) as Omit<Partial<PrinterSettings>, 'mode'> & { mode?: string; escposAddress?: unknown }
-    // An install configured before raw mode existed may still say
-    // ESCPOS_BLUETOOTH; that adapter never worked, so raw is its successor.
-    const legacy = stored.mode as string | undefined
-    const mode: PrinterSettings['mode'] =
-      legacy === 'ESCPOS_RAW' || legacy === 'ESCPOS_BLUETOOTH' || (!legacy && isChromeOsContainer())
-        ? 'ESCPOS_RAW'
-        : 'SYSTEM'
+    const stored = JSON.parse(row.value) as Omit<Partial<PrinterSettings>, 'mode'> & {
+      mode?: unknown
+      /** Pre-1.0 field: a Bluetooth MAC. Superseded by a serial port name. */
+      escposAddress?: unknown
+    }
     const { escposAddress: _legacy, ...rest } = stored
-    return { ...defaultsForHost(), ...rest, mode }
+    const merged = { ...defaultsForHost(), ...rest, mode: reconcileMode(stored.mode) }
+    // A hand-edited or copied-in settings row must not be able to put an
+    // impossible baud rate on the serial port.
+    if (!(BAUD_RATES as readonly number[]).includes(merged.baudRate)) merged.baudRate = DEFAULT_BAUD
+    return merged
   } catch {
     return defaultsForHost()
   }
@@ -61,9 +70,21 @@ function savePrinterSettings(next: PrinterSettings, actorId?: number): void {
 }
 
 export function getAdapter(settings = getPrinterSettings()): PrinterAdapter {
-  return settings.mode === 'ESCPOS_RAW'
-    ? new EscposRawAdapter((paperWidth) => (settings.printLogo ? renderLogoRaster(logoDotsForPaper(paperWidth)) : null))
-    : new SystemPrinterAdapter()
+  // Every ESC/POS mode prints the identical bytes, so they share one logo
+  // source; only the transport below differs.
+  const logo = (paperWidth: 58 | 80): ThermalRaster | null =>
+    settings.printLogo ? renderLogoRaster(logoDotsForPaper(paperWidth)) : null
+
+  switch (settings.mode) {
+    case 'ESCPOS_RAW':
+      return new EscposRawAdapter(logo)
+    case 'ESCPOS_BLUETOOTH':
+      return new EscposBluetoothAdapter(logo, settings.baudRate)
+    case 'ESCPOS_NETWORK':
+      return new EscposNetworkAdapter(logo, settings.networkAddress)
+    default:
+      return new SystemPrinterAdapter()
+  }
 }
 
 export async function listPrinters(): Promise<PrinterInfo[]> {
@@ -100,6 +121,7 @@ export async function getPrinterState(): Promise<PrinterState> {
     availablePrinters,
     reachable: probe.reachable,
     message: probe.message,
+    modes: modeAvailability(),
     platform: isChromeOsContainer() ? 'chromeos' : process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'mac' : 'linux'
   }
 }
@@ -111,19 +133,99 @@ export async function updatePrinterSettings(patch: Partial<PrinterSettings>): Pr
 
   if (next.paperWidth !== 58 && next.paperWidth !== 80)
     throw new AppError('VALIDATION', 'Paper width must be 58 or 80 mm.')
-  if (next.mode !== 'SYSTEM' && next.mode !== 'ESCPOS_RAW')
-    throw new AppError('VALIDATION', 'Invalid printer mode.')
+  if (!isPrinterMode(next.mode)) throw new AppError('VALIDATION', 'Invalid printer mode.')
   if (!Number.isInteger(next.copies) || next.copies < 1 || next.copies > 5)
     throw new AppError('VALIDATION', 'Copies must be between 1 and 5.')
+  if (!(BAUD_RATES as readonly number[]).includes(next.baudRate))
+    throw new AppError('VALIDATION', `Speed must be one of ${BAUD_RATES.join(', ')}.`)
+
+  /*
+   * Refusing a mode this machine cannot use is the whole point of tracking
+   * availability — the alternative is a setting that saves cleanly and then
+   * fails at the counter with a message about the printer being off.
+   */
+  const availability = modeAvailability().find((m) => m.mode === next.mode)
+  if (availability && !availability.available) {
+    throw new AppError('VALIDATION', availability.reason)
+  }
+
+  // A network printer with no address cannot print, and the failure would
+  // surface as a mystery at the till rather than here.
+  if (next.networkAddress != null) {
+    const trimmed = next.networkAddress.trim()
+    next.networkAddress = trimmed.length === 0 ? null : trimmed
+    if (next.networkAddress && !parseTarget(next.networkAddress)) {
+      throw new AppError('VALIDATION', `"${next.networkAddress}" is not a printer address. Use the printer's IP address, for example 192.168.1.50.`)
+    }
+  }
+  if (next.mode === 'ESCPOS_NETWORK' && !next.networkAddress) {
+    throw new AppError('VALIDATION', 'Enter the network printer’s IP address before switching to network printing.')
+  }
   next.printLogo = !!next.printLogo
 
   savePrinterSettings(next, admin.id)
   audit({
     action: 'PRINTER_SETTINGS_CHANGED',
-    summary: `Printer set to ${next.mode === 'ESCPOS_RAW' ? 'direct ESC/POS' : 'system driver'}, ${next.paperWidth}mm, printer "${next.selectedPrinter ?? 'auto'}"`,
+    summary: `Printer set to ${MODE_LABELS[next.mode]}, ${next.paperWidth}mm, printer "${next.mode === 'ESCPOS_NETWORK' ? (next.networkAddress ?? 'unset') : (next.selectedPrinter ?? 'auto')}"`,
     entityType: 'printer'
   })
   return getPrinterState()
+}
+
+/** For the audit trail, so a change reads the same as the UI that made it. */
+const MODE_LABELS: Record<PrinterSettings['mode'], string> = {
+  SYSTEM: 'system driver',
+  ESCPOS_RAW: 'direct ESC/POS (wired)',
+  ESCPOS_BLUETOOTH: 'direct ESC/POS over Bluetooth',
+  ESCPOS_NETWORK: 'direct ESC/POS over the network'
+}
+
+/* ------------------------- Bluetooth and network -------------------------- */
+
+/**
+ * Bluetooth devices the operating system has already paired.
+ *
+ * Pairing stays in the OS — it needs PIN prompts and is done once per printer —
+ * so this is read-only. Its value is telling the admin that the printer *is*
+ * paired, which on Linux is the step that produces no port and therefore looks
+ * like nothing happened.
+ */
+export async function listPairedBluetooth(): Promise<PairedBluetoothDevice[]> {
+  requireAuth()
+  try {
+    return await listPairedDevices()
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Create `/dev/rfcommN` for a paired printer (Linux only).
+ *
+ * Admin-only and audited: it changes how the machine talks to hardware, and it
+ * is the one Bluetooth step that is not just reading state.
+ */
+export async function bindBluetoothPrinter(input: { address: string }): Promise<{ path: string }> {
+  requireAdmin()
+  const path = await bindRfcomm(input.address)
+  audit({
+    action: 'PRINTER_SETTINGS_CHANGED',
+    summary: `Bound Bluetooth printer ${input.address} to ${path}`,
+    entityType: 'printer'
+  })
+  return { path }
+}
+
+/**
+ * Sweep the local network for printers listening on port 9100.
+ *
+ * Explicitly user-initiated — it opens a connection to every address on the
+ * subnet, which is fine on a button press and wrong on a timer.
+ */
+export async function findNetworkPrinters(): Promise<{ address: string }[]> {
+  requireAuth()
+  const found = await scanForPrinters()
+  return found.map((t) => ({ address: formatTarget(t) }))
 }
 
 /**

@@ -24,6 +24,7 @@ import type {
   PrinterInfo,
   PrinterSettings,
   PrinterState,
+  PairedBluetoothDevice,
   Product,
   Role,
   SessionSummary,
@@ -107,6 +108,9 @@ export const CHANNELS = [
   'printer:logoChoose',
   'printer:logoRemove',
   'printer:probe',
+  'printer:pairedBluetooth',
+  'printer:bindBluetooth',
+  'printer:findNetwork',
   // reports
   'reports:businessDay',
   'reports:dateRange',
@@ -313,6 +317,12 @@ export interface Api {
     logo(): Promise<ApiResult<LogoState>>
     logoChoose(): Promise<ApiResult<LogoState>>
     logoRemove(): Promise<ApiResult<LogoState>>
+    /** Bluetooth devices the operating system has already paired. */
+    pairedBluetooth(): Promise<ApiResult<PairedBluetoothDevice[]>>
+    /** Linux only: create /dev/rfcommN for a paired printer. */
+    bindBluetooth(i: { address: string }): Promise<ApiResult<{ path: string }>>
+    /** Sweep the local subnet for printers listening on port 9100. */
+    findNetwork(): Promise<ApiResult<{ address: string }[]>>
   }
   reports: {
     businessDay(i: { businessDate: string }): Promise<ApiResult<any>>
@@ -404,6 +414,6 @@ export const ADMIN_CHANNELS: Channel[] = [
   'settings:update', 'settings:paymentMethodCreate', 'settings:paymentMethodUpdate',
   'audit:list',
   'backup:create', 'backup:list', 'backup:restore', 'backup:exportJson',
-  'printer:updateSettings', 'printer:logoChoose', 'printer:logoRemove',
+  'printer:updateSettings', 'printer:logoChoose', 'printer:logoRemove', 'printer:bindBluetooth',
   'session:activeAll'
 ]

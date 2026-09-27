@@ -137,6 +137,9 @@ const handlers: Record<Channel, Handler> = {
   'printer:logoChoose': () => printer.chooseLogo(),
   'printer:logoRemove': () => printer.removeLogo(),
   'printer:probe': () => printer.probePrinter(),
+  'printer:pairedBluetooth': () => printer.listPairedBluetooth(),
+  'printer:bindBluetooth': (p) => printer.bindBluetoothPrinter(p),
+  'printer:findNetwork': () => printer.findNetworkPrinters(),
 
   /* reports */
   'reports:businessDay': (p) => reports.businessDayReport(p.businessDate),

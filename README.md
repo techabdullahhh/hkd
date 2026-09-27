@@ -22,9 +22,11 @@ Currency is **PKR** throughout.
 - **Immutable invoices** with permanent numbers and frozen snapshots
 - **Runs on Windows, macOS, Linux and Chrome OS** (via the Linux container),
   from one codebase — see §8a for the Chromebook specifics
-- **Thermal invoice printing** (58 mm / 80 mm) to a wired USB receipt printer,
-  either through its driver with the page sized to the receipt, or as direct
-  ESC/POS raw bytes to its queue — logo, bold total and auto-cut included
+- **Thermal invoice printing** (58 mm / 80 mm) over **USB, Bluetooth or the
+  network**, either through the printer's driver with the page sized to the
+  receipt or as direct ESC/POS raw bytes — logo, bold total and auto-cut
+  included. The app works out which connections the machine can actually use
+  and explains the ones it cannot (see §8)
 - **Admin** management of menu, deals, prices, employees, payment methods, and
   settings, plus reports, an append-only audit log, and backup / restore
 
@@ -433,7 +435,27 @@ still signed in, the next person can ring up sales under their name until
 somebody signs out. On a shared till, make "sign out at the end of your shift"
 part of the routine — or ask for an auto-lock to be added.
 
-## 8. Printer setup (wired USB receipt printer)
+## 8. Printer setup
+
+Invoices reach the printer one of **four** ways, chosen under **Printer → How
+the printer is connected**. They all print the identical receipt — same logo,
+same bold total, same cut — and differ only in how the bytes get there. Each
+exists because the others are blocked on some machine this app has to run on.
+
+| Connection | Use it when | Works on |
+| --- | --- | --- |
+| **Through the printer's driver** | A normal printer with a normal driver | Windows, macOS |
+| **Direct ESC/POS — wired USB** | A USB thermal printer. **The most reliable option; prefer it wherever a cable is possible** | Everywhere, incl. Chrome OS |
+| **Direct ESC/POS — Bluetooth** | The printer is paired over Bluetooth | Windows, macOS, desktop Linux. **Not Chrome OS** |
+| **Direct ESC/POS — network** | The printer has Wi-Fi or an Ethernet socket | Everywhere, incl. Chrome OS |
+
+The app works out which of these the machine can actually use and greys out the
+rest with the reason attached, rather than letting someone pick one that saves
+cleanly and then silently never prints (`src/main/printer/modes.ts`).
+
+Sections 8.1–8.3 cover wired USB, Bluetooth and network in turn.
+
+### 8.1 Wired USB — the default
 
 The restaurant's printer is a **wired USB thermal receipt printer** (Black
 Copper or similar). It works two ways, both configured under **Printer** in the
@@ -487,6 +509,82 @@ Both modes print the identical logo: one thresholding pass produces both the
 PNG the driver path embeds and the packed bitmap the ESC/POS path sends
 (`src/main/printer/thermalImage.ts`). The logo prints 45 mm wide on 80 mm
 paper, 30 mm on 58 mm.
+
+### 8.2 Bluetooth
+
+A Bluetooth thermal printer does not speak a special Bluetooth protocol. It
+advertises the **Serial Port Profile** (SPP/RFCOMM), and every operating system
+presents a paired SPP device as an ordinary serial port:
+
+| | Port the printer appears as |
+| --- | --- |
+| Windows | `COM5` — created automatically when you pair |
+| macOS | `/dev/cu.PrinterName` — created automatically when you pair |
+| Linux | `/dev/rfcomm0` — **not** automatic, see below |
+
+Write ESC/POS to that port and it prints. That is why this needs no native
+module: no `node-bluetooth`, no `serialport`, nothing to rebuild against each
+Electron release (`src/main/printer/serialPort.ts`).
+
+**Setting it up**
+
+1. **Pair the printer in the operating system**, not in this app — Windows
+   *Settings → Bluetooth & devices → Add device*, macOS *System Settings →
+   Bluetooth*. The PIN is usually `0000` or `1234`. Pairing is deliberately left
+   to the OS: it is done once per printer and the PIN prompt belongs there.
+2. **On Linux only**, bind the paired printer to a port. Pairing alone creates
+   nothing, which is the single most confusing thing about Bluetooth printing
+   on Linux — a correctly paired printer simply does not appear. Use the
+   **Connect** button in the app's Bluetooth panel, or run it by hand:
+
+   ```bash
+   sudo rfcomm bind 0 AA:BB:CC:DD:EE:FF 1
+   ```
+
+   This is lost on restart. If the user is refused access to the port, add them
+   to the group that owns it, then sign out and back in:
+
+   ```bash
+   sudo usermod -aG dialout $USER
+   ```
+3. In the app: **Printer** → connection **Direct ESC/POS — Bluetooth** →
+   **Refresh printers** → pick the port → **Print test invoice**.
+
+**Speed** is offered but only matters for a printer on a real serial cable;
+Bluetooth negotiates its own. Leave it at 9,600 unless the manual says otherwise.
+
+**Bluetooth is the least reliable of the four**, and worth avoiding where a
+cable or the network is possible. The link drops when the printer sleeps or
+drifts out of range, and it reconnects only when something writes to it — so a
+failure shows up as a missing receipt at the counter. The app distinguishes
+"out of range", "asleep", "not paired" and "not permitted" rather than reporting
+one generic failure, because on a busy counter the difference between those is
+the difference between a fix and a phone call.
+
+### 8.3 Network (Wi-Fi or Ethernet)
+
+Thermal printers with Wi-Fi or an Ethernet socket almost universally listen on
+**TCP port 9100** — raw socket printing, sometimes called JetDirect. There is no
+protocol on top: open the socket, write ESC/POS, close it. That makes this the
+transport with the fewest moving parts in the app, and the only *wireless* one
+that works everywhere — including Chrome OS, where Bluetooth is impossible.
+
+1. Put the printer on the same network as the till (its manual will say how —
+   usually a WPS button or a small web page).
+2. Find its address. Most thermal printers print it on a self-test slip if you
+   **hold the feed button while switching the printer on**.
+3. In the app: **Printer** → connection **Direct ESC/POS — network** → type the
+   address → **Save**. Or press **Find printers**, which tries port 9100 across
+   the local network and lists what answers.
+4. **Print test invoice.**
+
+**Give the printer a fixed address** in the router's settings (a "DHCP
+reservation"). If the router hands out addresses automatically, the printer's
+can change when it restarts, and printing then fails with nothing visibly
+wrong — the commonest cause of a network printer that "worked yesterday".
+
+The address is stored separately from the USB/serial printer choice, so
+switching between transports to test one does not lose the other.
 
 ### If printing fails
 
@@ -707,6 +805,49 @@ sudo usermod -aG lp $USER
 The app detects this exact case and shows that command rather than a bare
 "permission denied".
 
+**If the USB printer never appears**, work through this in order — step 2 is
+the one people miss:
+
+```bash
+lsusb | grep -i -E 'print|thermal|pos'   # is the printer visible at all?
+ls -l /dev/usb/lp* /dev/lp*              # did the kernel create a node?
+groups                                   # are you in the lp group?
+```
+
+1. Nothing from `lsusb` → the printer is not shared into the container. Redo
+   *Manage USB devices*; if the toggle is missing, unplug and re-plug the
+   printer and look for the Chrome OS notification.
+2. `lsusb` shows it but there is no `/dev/usb/lp0` → the kernel's printer
+   driver has not attached. `sudo modprobe usblp`, then re-plug. Some printers
+   present as a vendor-specific device rather than a standard printer, and
+   those produce no node at all — the network route below is the answer.
+3. The node exists but is not writable → `sudo usermod -aG lp $USER`, then sign
+   out of Chrome OS and back in.
+
+#### Bluetooth cannot work on Chrome OS
+
+Not "is not set up yet" — **cannot**. Chrome OS keeps the Bluetooth adapter on
+the host side and passes only *USB* devices into the Linux container. Inside
+the container there is no adapter, `bluetoothd` is not running, and
+`bluetoothctl` reports no controller. This is a boundary of the platform, not a
+missing feature of this app, and no change to the code can move it. The app
+detects the container and greys the option out with that explanation rather
+than letting it be selected.
+
+To confirm it on the machine itself:
+
+```bash
+bluetoothctl list     # prints nothing inside Crostini
+ls /sys/class/bluetooth/   # empty
+```
+
+#### So for wireless on a Chromebook, use a network printer
+
+A Wi-Fi or Ethernet thermal printer is the answer, and it is the *easiest*
+setup of all four — the container has unrestricted network access, so it needs
+no sharing, no permissions, no `usermod` and no root. Follow §8.3. This is the
+recommendation for any Chromebook where the cable is inconvenient.
+
 ### Other Chrome OS notes
 
 - **Graphics.** Chrome OS puts Linux apps on screen through a Wayland bridge
@@ -862,7 +1003,9 @@ src/
     db/               schema, migrations (DDL + triggers), seed
     services/         all business logic (auth, session, businessDay, orders,
                       invoices, menu, deals, reports, printer, backup, audit…)
-    printer/          PrinterAdapter interface + System / ESC-POS adapters + render
+    printer/          PrinterAdapter interface + four transports (driver, raw
+                      USB, Bluetooth serial, network 9100) + mode availability
+                      + thermal logo conversion + invoice render
     ipc/              channel manifest → handler map → single ipcMain.handle
   preload/            contextBridge: builds typed window.api over one IPC channel
   shared/             types, IPC contract, time & money helpers, seed menu data

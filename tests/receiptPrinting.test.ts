@@ -212,20 +212,33 @@ describe('printer mode setting', () => {
     await expect(updatePrinterSettings({ mode: 'FAX' as never })).rejects.toThrow(/mode/i)
   })
 
-  it('reads an old ESCPOS_BLUETOOTH setting as raw mode instead of breaking', () => {
+  it('honours an old ESCPOS_BLUETOOTH setting now that Bluetooth works, and drops the dead field', async () => {
+    /*
+     * This assertion changed once Bluetooth printing was actually implemented.
+     * Before that the mode named a transport with no adapter behind it, so the
+     * only safe migration was to rewrite it as raw. Now the mode works, and
+     * rewriting it would silently override what the admin asked for — so the
+     * stored intent is kept wherever the machine can honour it, and dropped to
+     * raw only where it cannot. `escposAddress` held a Bluetooth MAC and is
+     * superseded by a serial port name, so it goes either way.
+     *
+     * The expectation is derived from the same availability the app uses, since
+     * this machine may or may not have Bluetooth. The host-specific branches
+     * themselves are pinned down with mocked platforms in
+     * tests/wirelessPrinting.test.ts.
+     */
+    const legacy = JSON.stringify({ mode: 'ESCPOS_BLUETOOTH', escposAddress: 'COM5', paperWidth: 58 })
     db.insert(schema.appSettings)
-      .values({
-        key: 'printer.settings',
-        value: JSON.stringify({ mode: 'ESCPOS_BLUETOOTH', escposAddress: 'COM5', paperWidth: 58 }),
-        updatedAt: Date.now()
-      })
-      .onConflictDoUpdate({
-        target: schema.appSettings.key,
-        set: { value: JSON.stringify({ mode: 'ESCPOS_BLUETOOTH', escposAddress: 'COM5', paperWidth: 58 }) }
-      })
+      .values({ key: 'printer.settings', value: legacy, updatedAt: Date.now() })
+      .onConflictDoUpdate({ target: schema.appSettings.key, set: { value: legacy } })
       .run()
+
+    const { isModeAvailable } = await import('../src/main/printer/modes')
     const s = getPrinterSettings()
-    expect(s.mode).toBe('ESCPOS_RAW')
+
+    expect(s.mode).toBe(isModeAvailable('ESCPOS_BLUETOOTH') ? 'ESCPOS_BLUETOOTH' : 'ESCPOS_RAW')
+    // Whatever the host, the migrated mode must be one that can actually print.
+    expect(isModeAvailable(s.mode)).toBe(true)
     expect(s.paperWidth).toBe(58)
     expect('escposAddress' in s).toBe(false)
   })
