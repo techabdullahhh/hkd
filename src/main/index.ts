@@ -17,6 +17,15 @@ const isDev = !app.isPackaged
  */
 if (isChromeOsContainer()) {
   app.disableHardwareAcceleration()
+  /*
+   * `disableHardwareAcceleration()` is not enough on its own. It stops
+   * Chromium *using* the GPU but still starts the GPU process, and on a real
+   * Chromebook that process fails in a way that takes the window with it —
+   * the app never appears, leaving only `XGetWindowAttributes failed` in a
+   * terminal nobody is watching. `--disable-gpu` is the switch that actually
+   * produces a window there, confirmed on the hardware.
+   */
+  app.commandLine.appendSwitch('disable-gpu')
   app.commandLine.appendSwitch('disable-gpu-compositing')
   // Crostini containers often lack the shared memory Chromium wants for
   // its renderer, which shows up as a renderer that dies on launch.

@@ -85,6 +85,25 @@ describe('Chrome OS container detection', () => {
     return import('../src/main/platform')
   }
 
+  /**
+   * Run a check as though this were Linux.
+   *
+   * Without this the platform guard short-circuits every marker test on a Mac
+   * or Windows dev machine: the expectation becomes `toBe(false)`, which holds
+   * whether the marker works or not. The HOSTNAME regression below is exactly
+   * the kind of bug that hides behind that, so these assertions force the
+   * platform and then assert the real answer.
+   */
+  const asLinux = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const original = process.platform
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+    try {
+      return await fn()
+    } finally {
+      Object.defineProperty(process, 'platform', { value: original, configurable: true })
+    }
+  }
+
   it('is false on a plain Linux box with none of the markers', async () => {
     vi.doMock('fs', () => ({ existsSync: () => false }))
     vi.stubEnv('SOMMELIER_VERSION', '')
@@ -113,5 +132,38 @@ describe('Chrome OS container detection', () => {
     vi.stubEnv('SOMMELIER_VERSION', '0.1.0')
     const { isChromeOsContainer } = await load()
     if (process.platform !== 'linux') expect(isChromeOsContainer()).toBe(false)
+  })
+
+  it('recognises the container from Chrome OS’s own integration tooling', async () => {
+    vi.doMock('fs', () => ({ existsSync: (f: string) => f === '/opt/google/cros-containers' }))
+    vi.stubEnv('SOMMELIER_VERSION', '')
+    const { isChromeOsContainer } = await load()
+    expect(await asLinux(async () => isChromeOsContainer())).toBe(true)
+  })
+
+  it('recognises the container by hostname even though bash never exports HOSTNAME', async () => {
+    /*
+     * The regression this pins down: the check used to read
+     * process.env.HOSTNAME, but bash sets HOSTNAME as a shell variable
+     * *without exporting it*, so a launched program sees nothing. On a real
+     * Chromebook — whose container is called exactly 'penguin' — the check
+     * therefore never matched, Chrome OS went undetected, the GPU switches
+     * were never applied and the app did not open at all. Reading it through
+     * os.hostname() is what makes the marker work.
+     */
+    vi.doMock('fs', () => ({ existsSync: () => false }))
+    vi.doMock('os', () => ({ hostname: () => 'penguin' }))
+    vi.stubEnv('SOMMELIER_VERSION', '')
+    vi.stubEnv('HOSTNAME', '') // deliberately empty, as a launched process sees it
+    const { isChromeOsContainer } = await load()
+    expect(await asLinux(async () => isChromeOsContainer())).toBe(true)
+  })
+
+  it('does not mistake an ordinary Linux PC for a Chromebook', async () => {
+    vi.doMock('fs', () => ({ existsSync: () => false }))
+    vi.doMock('os', () => ({ hostname: () => 'till-desktop' }))
+    vi.stubEnv('SOMMELIER_VERSION', '')
+    const { isChromeOsContainer } = await load()
+    expect(await asLinux(async () => isChromeOsContainer())).toBe(false)
   })
 })
