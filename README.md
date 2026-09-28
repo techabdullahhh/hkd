@@ -130,7 +130,7 @@ npm run build:win    # build + produce the Windows installer in release/
 npm run build:dir    # unpacked build for quick local inspection
 ```
 
-`build:win` produces `release/Hashmi Ka Dera POS-1.0.0-Setup.exe` (~89 MB).
+`build:win` produces `release/Hashmi Ka Dera POS-1.1.0-Setup.exe` (~89 MB).
 Icons are generated from the logo and live in `build/` — `icon.ico`
 (multi-size, 16→256 px), `icon.icns` (built with macOS `iconutil`, not
 ImageMagick, which writes a PNG under an `.icns` name) and `icon.png`.
@@ -158,7 +158,7 @@ no source, no internet** — just Windows 10 or 11 (64-bit).
 
 ### What to send
 
-One file: **`Hashmi Ka Dera POS-1.0.0-Setup.exe`** from `release/`.
+One file: **`Hashmi Ka Dera POS-1.1.0-Setup.exe`** from `release/`.
 
 It is ~89 MB, so email will usually reject it — use WhatsApp Desktop, Google
 Drive, a USB stick, or attach it to a GitHub Release. Do **not** send the
@@ -643,8 +643,8 @@ both work, because the app runs in its own container with its own libraries.
 ### Installing
 
 1. Send the right package for the Chromebook's processor:
-   - **`hashmi-ka-dera-pos_1.0.0_amd64.deb`** — Intel/AMD, most Chromebooks
-   - **`hashmi-ka-dera-pos_1.0.0_arm64.deb`** — ARM (MediaTek, Snapdragon)
+   - **`hashmi-ka-dera-pos_1.1.0_amd64.deb`** — Intel/AMD, most Chromebooks
+   - **`hashmi-ka-dera-pos_1.1.0_arm64.deb`** — ARM (MediaTek, Snapdragon)
 
    Unsure? In the Linux terminal run `dpkg --print-architecture`.
 2. Put the file in the **Linux files** folder in the Files app. That folder
@@ -654,7 +654,7 @@ both work, because the app runs in its own container with its own libraries.
 
    ```bash
    sudo apt update
-   sudo apt install ./hashmi-ka-dera-pos_1.0.0_amd64.deb
+   sudo apt install ./hashmi-ka-dera-pos_1.1.0_amd64.deb
    ```
 
    It appears in the launcher as *Hashmi Ka Dera POS*, or runs as
@@ -749,7 +749,7 @@ entirely:
 ```bash
 sudo apt install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 \
   xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
-sudo dpkg -i ./hashmi-ka-dera-pos_1.0.0_amd64.deb
+sudo dpkg -i ./hashmi-ka-dera-pos_1.1.0_amd64.deb
 ```
 
 **To rule out a corrupted transfer**, compare the checksum against the build
@@ -758,18 +758,42 @@ the one failure mode that genuinely is the file's fault, and `.deb` files this
 large do get truncated by flaky USB sticks and cloud sync:
 
 ```bash
-sha256sum ~/hashmi-ka-dera-pos_1.0.0_amd64.deb
+sha256sum ~/hashmi-ka-dera-pos_1.1.0_amd64.deb
 ```
 
 ### Uninstalling or upgrading
 
 ```bash
 sudo apt remove hashmi-ka-dera-pos              # keeps the database
-sudo apt install ./hashmi-ka-dera-pos_1.0.1_amd64.deb   # upgrade in place
+sudo apt install ./hashmi-ka-dera-pos_1.1.0_amd64.deb   # upgrade in place
 ```
 
 Neither touches the data: the database lives in the user's config directory
 (§5a), not in the installed package. Take a backup before upgrading anyway.
+
+**Bump `version` in `package.json` for every build you hand to someone.** `apt`
+compares versions and *silently does nothing* when the installed one already
+matches — it reports "already the newest version" and exits 0, so a rebuilt
+package with the same number looks installed and is not. This is worth stating
+because it cost a real debugging session: a package with new code in it, built
+under the old number, appeared to install and changed nothing.
+
+To confirm which build is actually on a machine, read it out of the installed
+app rather than trusting the version string:
+
+```bash
+dpkg -l hashmi-ka-dera-pos | tail -1                          # ii + version
+grep -ac ESCPOS_NETWORK /opt/hashmi-ka-dera-pos/resources/app.asar   # 0 = pre-1.1.0
+```
+
+To force the same version in anyway:
+
+```bash
+sudo apt reinstall ./hashmi-ka-dera-pos_1.1.0_amd64.deb
+```
+
+Deleting the `.deb` does not uninstall anything — it is only the installer. The
+app lives in `/opt/hashmi-ka-dera-pos`; remove it with `apt remove`.
 
 ### The printer on Chrome OS
 

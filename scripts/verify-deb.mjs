@@ -11,11 +11,42 @@
  *   node scripts/verify-deb.mjs release/hashmi-ka-dera-pos_1.0.0_amd64.deb
  */
 import { execFileSync } from 'child_process'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 
-const file = process.argv[2]
-if (!file || !existsSync(file)) {
-  console.error('usage: node scripts/verify-deb.mjs <file.deb>')
+/**
+ * Either an explicit path, or `--arch amd64` to derive one from package.json.
+ *
+ * The derived form exists so the build scripts cannot drift from the version
+ * they just built: hardcoding the filename meant a version bump silently
+ * stopped the verifier from running at all — it exited with a usage message
+ * while the build reported success, which is precisely the failure this
+ * script was written to prevent.
+ */
+function resolveTarget() {
+  const args = process.argv.slice(2)
+  const archFlag = args.indexOf('--arch')
+  const arch = archFlag === -1 ? null : args[archFlag + 1]
+
+  // A bare argument is a path — but not the value belonging to --arch.
+  // Guard on archFlag !== -1: without it, index 0 is excluded whenever --arch
+  // is absent, which is exactly the plain `verify-deb.mjs <file>` case.
+  const archValueAt = archFlag === -1 ? -1 : archFlag + 1
+  const explicit = args.find((a, i) => !a.startsWith('--') && i !== archValueAt)
+  if (explicit) return explicit
+
+  if (!arch) return null
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  return join('release', `${pkg.name}_${pkg.version}_${arch}.deb`)
+}
+
+const file = resolveTarget()
+if (!file) {
+  console.error('usage: node scripts/verify-deb.mjs <file.deb> | --arch <amd64|arm64>')
+  process.exit(2)
+}
+if (!existsSync(file)) {
+  console.error(`No such package: ${file}`)
   process.exit(2)
 }
 

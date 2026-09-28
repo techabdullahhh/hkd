@@ -1,7 +1,7 @@
 {
   "name": "hashmi-ka-dera-pos",
   "productName": "Hashmi Ka Dera POS",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hashmi Ka Dera (HKD) \u2014 Restaurant POS & Management System",
   "author": "Hashmi Ka Dera",
   "license": "UNLICENSED",
@@ -30,9 +30,9 @@
     "build:win": "npm run build && electron-builder --win --x64",
     "build:dir": "npm run build && electron-builder --dir",
     "lint": "eslint . --ext .ts,.tsx",
-    "build:linux": "npm run build && npx electron-builder --linux dir --x64 && node scripts/build-deb.mjs --arch amd64 --src release/linux-unpacked && node scripts/verify-deb.mjs release/hashmi-ka-dera-pos_1.0.0_amd64.deb",
+    "build:linux": "npm run build && npx electron-builder --linux dir --x64 && node scripts/build-deb.mjs --arch amd64 --src release/linux-unpacked && node scripts/verify-deb.mjs --arch amd64",
     "build:chromeos": "npm run build:linux && npm run build:linux:arm",
-    "build:linux:arm": "npm run build && npx electron-builder --linux dir --arm64 && node scripts/build-deb.mjs --arch arm64 --src release/linux-arm64-unpacked && node scripts/verify-deb.mjs release/hashmi-ka-dera-pos_1.0.0_arm64.deb"
+    "build:linux:arm": "npm run build && npx electron-builder --linux dir --arm64 && node scripts/build-deb.mjs --arch arm64 --src release/linux-arm64-unpacked && node scripts/verify-deb.mjs --arch arm64"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
