@@ -805,10 +805,19 @@ container, and that container ships with no print system whatsoever — `lp`
 does not exist. The driver-based print path therefore cannot work on a
 Chromebook at all.
 
-What does work is direct USB. Once the printer is shared into the container
-the kernel exposes it as `/dev/usb/lp0`, and ESC/POS bytes written to that
-file *are* the protocol. So on Chrome OS the app defaults to **Direct
-ESC/POS**, lists the device node as a printer, and prefers it automatically.
+What does work is direct ESC/POS, and the app defaults to it on Chrome OS. It
+reaches the printer one of two ways there, and **which one depends on the
+Chromebook**:
+
+- Where the kernel creates `/dev/usb/lp0`, ESC/POS bytes written to that file
+  *are* the protocol. The app lists the node and prefers it automatically.
+- Where it does not — and on current Crostini it generally does not, because
+  the kernel ships without `usblp` — the printer is reached through a CUPS raw
+  queue instead. See *A USB printer on Chrome OS needs CUPS* below, which is
+  the route verified on real hardware.
+
+Try the steps immediately below first; if no node appears, that section is the
+one to follow.
 
 1. Plug the printer in and switch it on.
 2. **Settings → About Chrome OS → Linux → Manage USB devices**, and turn the
@@ -847,6 +856,62 @@ groups                                   # are you in the lp group?
    those produce no node at all — the network route below is the answer.
 3. The node exists but is not writable → `sudo usermod -aG lp $USER`, then sign
    out of Chrome OS and back in.
+
+#### A USB printer on Chrome OS needs CUPS, not a device node
+
+This is the route that actually works on a Chromebook, confirmed on real
+hardware with a Rongta 80Series2. It is worth reading before touching any
+settings, because the obvious path is a dead end:
+
+**Crostini's kernel has no `usblp` driver**, so `/dev/usb/lp0` will never
+appear however the printer is shared. The app's simplest transport is therefore
+unavailable on Chrome OS specifically. What does work is CUPS's USB backend,
+which talks to the printer through user-space libusb and needs no kernel
+driver — the app then prints to it as a raw queue, exactly as it does to any
+other CUPS queue.
+
+The order matters. Chrome OS's own print system **re-claims the device**, which
+shows up as the USB-sharing toggle silently switching itself off again:
+
+1. **Settings → Printing → Printers** — remove the printer, and any other entry
+   matching it. While it is registered here, Chrome OS will not release it.
+2. Unplug the printer.
+3. **Settings → About Chrome OS → Linux → Manage USB devices** — toggle it on.
+4. Plug it back in. If Chrome OS offers to set it up as a printer, **dismiss
+   that** — accepting re-claims the device.
+5. Restart the container: right-click **Terminal** → *Shut down Linux*, then
+   reopen it. A toggle flipped while the container is running does not take
+   effect until it restarts.
+6. `lsusb` should now list the printer.
+
+**The success signal is that Ctrl+P in Chrome can no longer find the printer.**
+A USB device belongs to Chrome OS or to Linux, never both, so "it still prints
+from Chrome" means the handover has not happened. This is the single most
+confusing part of the process and is worth saying to anyone doing it.
+
+Then install CUPS in the container and add the printer as a raw queue:
+
+```bash
+sudo apt update && sudo apt install -y cups cups-client
+sudo usermod -aG lp,lpadmin $USER
+sudo systemctl enable --now cups
+# sign out of Chrome OS and back in, for the group change
+sudo lpinfo -v | grep usb          # note: lpinfo lives in /usr/sbin, hence sudo
+sudo lpadmin -p HKD -v "usb:///80Series2?serial=XXXX" -E
+printf '\x1b@TEST\n\n\n\x1dVB\x00' | lp -d HKD -o raw
+```
+
+No `-m` on `lpadmin` is deliberate: a queue with no driver is a raw queue, which
+is what ESC/POS wants. Then in the app choose **Direct ESC/POS — wired USB** and
+select `HKD`.
+
+**If `lpinfo -v` lists no `usb://` line**, check `/dev/bus/usb/` — the container's
+udev sometimes fails to create the device node, and libusb cannot open what has
+no node. `sudo /usr/lib/cups/backend/usb` reports how many devices libusb found;
+a count that is short by one against `lsusb` is this exact fault. Restarting the
+container (step 5) is the fix. The node can be created by hand as a last
+resort — major 189, minor `(bus-1)*128 + (device-1)` — but one made that way
+does not survive a re-plug or a restart, so it is a diagnostic, not a solution.
 
 #### Bluetooth cannot work on Chrome OS
 
